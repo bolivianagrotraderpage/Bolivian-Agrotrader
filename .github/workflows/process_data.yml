@@ -1,37 +1,29 @@
-name: Process Weekly Commodity Data
+name: Refresh Dashboard Data
 
 on:
-  push:
-    paths:
-      - 'data/latest.csv' # Triggers only when this specific data file updates
-  workflow_dispatch: # Allows you to force-run this manually from the GitHub website
+  schedule:
+    - cron: '0 * * * *' # Runs every hour. Change to '0 0 * * *' for daily.
+  workflow_dispatch: # Allows you to trigger the update manually via GitHub UI
 
 jobs:
-  update-dashboard-data:
+  sync-sheets:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set Up Python Environment
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+      - name: Ensure Data Directory Exists
+        run: mkdir -p data
 
-      - name: Install Data Processing Dependencies
+      - name: Fetch Latest Data from Google Sheets
         run: |
-          python -m pip install --upgrade pip
-          pip install pandas
+          curl -L "https://docs.google.com/spreadsheets/d/e/2PACX-1vRszhjoiukvU6N9Dw3VF_I5z40ZzFU4-FL1ltZ_y1yTMStGUdysdyhF7jC6vcMJSE7C7PYH9TBpPrVR/pub?gid=1172088102&single=true&output=csv" -o data/history.csv
 
-      - name: Run Python Parsing Script
-        run: python process_data.py
-
-      - name: Commit and Push Compiled Data
+      - name: Commit and Push if Data Changed
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/history.csv
           
-          git add processed/history.json
-          
-          # Only commit if there are actual new entries to prevent infinite loop errors
-          git diff --quiet && git diff --staged --quiet || (git commit -m "System: Auto-compiled latest.csv data entries" && git push)
+          # Only commit if there are changes to avoid empty commits
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated update: Synced commodity data from Google Sheets" && git push)
