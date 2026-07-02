@@ -1,29 +1,46 @@
-name: Refresh Dashboard Data
+name: Sync form responses to history.json
 
 on:
   schedule:
-    - cron: '0 * * * *' # Runs every hour. Change to '0 0 * * *' for daily.
-  workflow_dispatch: # Allows you to trigger the update manually via GitHub UI
+    - cron: '0 * * * *'   # every hour — change to '0 6 * * *' for daily at 06:00 UTC
+  workflow_dispatch: {}    # lets you trigger it manually from the Actions tab
+
+permissions:
+  contents: write
+  issues: write   # needed only for the failure-notification step below
 
 jobs:
-  sync-sheets:
+  sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Ensure Data Directory Exists
-        run: mkdir -p data
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-      - name: Fetch Latest Data from Google Sheets
+      - name: Sync Google Form responses into history.json
+        id: sync
+        run: python scripts/sync_form_to_history.py
+
+      - name: Commit updated history.json
         run: |
-          curl -L "https://docs.google.com/spreadsheets/d/e/2PACX-1vRszhjoiukvU6N9Dw3VF_I5z40ZzFU4-FL1ltZ_y1yTMStGUdysdyhF7jC6vcMJSE7C7PYH9TBpPrVR/pub?gid=1172088102&single=true&output=csv" -o data/history.csv
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add processed/history.json
+          git diff --staged --quiet || git commit -m "Sync form responses [skip ci]"
+          git push
 
-      - name: Commit and Push if Data Changed
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/history.csv
-          
-          # Only commit if there are changes to avoid empty commits
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated update: Synced commodity data from Google Sheets" && git push)
+      # If the sync step fails (bad fetch, empty sheet, malformed data),
+      # this opens a GitHub issue instead of failing silently at 3am.
+      - name: Open an issue if sync failed
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Dashboard sync failed — ${new Date().toISOString().slice(0,10)}`,
+              body: `The scheduled sync from the Google Sheet to \`processed/history.json\` failed.\n\nCheck the run log: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
