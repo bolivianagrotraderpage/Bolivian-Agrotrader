@@ -14,7 +14,7 @@ import urllib.request
 from io import StringIO
 from pathlib import Path
 
-CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRszhjoiukvU6N9Dw3VF_I5z40ZzFU4-FL1ltZ_y1yTMStGUdysdyhF7jC6vcMJSE7C7PYH9TBpPrVR/pub?gid=1172088102&single=true&output=csv"
+CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRHWIio7FAVHaT8BrxgZaT-SpAxulHLv9NkL_WZwSBOmZRKUy9NIFNiZWiFllj6NiB5COwNxL73LEDr/pub?gid=345760016&single=true&output=csv"
 
 # Google Form question titles -> (group, product, region)
 # Use these EXACT strings as your Form question titles so the columns line up.
