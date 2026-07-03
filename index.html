@@ -11,9 +11,7 @@
   :root{
     --bg: #171B18;
     --bg-panel: #1E231F;
-    --bg-input: #12150F;
     --line: #33392F;
-    --line-soft: #262B22;
     --text: #EDEAD4;
     --text-dim: #9BA192;
     --grain: #D9A441;
@@ -22,7 +20,6 @@
     --soy-dim: #3E4F35;
     --freight: #7FA6C4;
     --freight-dim: #35434E;
-    --error: #D97757;
     --radius: 6px;
   }
   *{box-sizing:border-box}
@@ -99,15 +96,216 @@
     border-top:1px solid var(--line);
     padding-top:40px;
   }
-  </style> </head>
-<section id="manual-entry">
-  <h2>Agregar datos manualmente</h2>
-  <div class="sub">Use el formulario para registrar nuevos precios. Los datos se sincronizan al panel automáticamente cada hora.</div>
-  <a href="https://forms.gle/FMN4Vvt1vFatUPZD8" target="_blank" rel="noopener"
-     style="display:inline-block; margin-top:12px; padding:12px 24px; background:var(--grain); color:#1A1500; font-weight:700; text-decoration:none; border-radius:4px; font-family:'JetBrains Mono', monospace;">
-    Abrir formulario de registro →
-  </a>
-</section>
+  .entry-card{
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:28px;
   }
+  .entry-cta{
+    display:inline-block;
+    margin-top:4px;
+    padding:12px 24px;
+    background:var(--grain);
+    color:#1A1500;
+    font-weight:700;
+    text-decoration:none;
+    border-radius:4px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+  }
+  .entry-cta:hover{opacity:0.9;}
+  @media (max-width:640px){
+    header{padding:32px 20px 24px;}
+    main{padding:0 20px;}
+    header h1{font-size:26px;}
+  }
+</style>
+</head>
+<body>
 
+<header>
+  <div class="eyebrow">Reporte de mercado · actualizado periódicamente</div>
+  <h1>Precios agropecuarios — Bolivia</h1>
+  <p>Maíz, sorgo y harinas · complejo soya FOB · fletes Lima / Arica</p>
+</header>
+
+<main>
+
+  <section id="grains-section">
+    <span class="group-label grain">Granos</span>
+    <h2>Maíz, sorgo y harinas</h2>
+    <div class="sub">Cochabamba · Santa Cruz · Anapo</div>
+    <div class="chart-panel">
+      <canvas id="grainsChart"></canvas>
+      <div id="grainsEmpty" class="empty-state">Aún no hay datos. Agregue un registro con el formulario abajo.</div>
+    </div>
+  </section>
+
+  <section id="soy-section">
+    <span class="group-label soy">Complejo soya</span>
+    <h2>Soya, aceite y torta — FOB</h2>
+    <div class="sub">Perú · Bolivia · Chicago · Argentina</div>
+    <div class="chart-panel">
+      <canvas id="soyChart"></canvas>
+      <div id="soyEmpty" class="empty-state">Aún no hay datos. Agregue un registro con el formulario abajo.</div>
+    </div>
+  </section>
+
+  <section id="freight-section">
+    <span class="group-label freight">Fletes</span>
+    <h2>Lima y Arica</h2>
+    <div class="chart-panel">
+      <canvas id="freightChart"></canvas>
+      <div id="freightEmpty" class="empty-state">Aún no hay datos. Agregue un registro con el formulario abajo.</div>
+    </div>
+  </section>
+
+  <section id="manual-entry">
+    <h2>Agregar datos manualmente</h2>
+    <div class="sub">Use el formulario para registrar nuevos precios. Los datos se sincronizan al panel automáticamente cada hora.</div>
+    <div class="entry-card">
+      <a class="entry-cta" href="https://forms.gle/18dbuNz8MTXQi2ZP6" target="_blank" rel="noopener">
+        Abrir formulario de registro →
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// ---- field schema (kept so chart rendering can group price series) ----
+const GRAIN_PRODUCTS = [
+  {key:'maiz', label:'Maíz'},
+  {key:'sorgo', label:'Sorgo'},
+  {key:'harina_integral', label:'H. Integral'},
+  {key:'harina_solvente', label:'H. Solvente'},
+];
+const GRAIN_REGIONS = [
+  {key:'cbba', label:'Cochabamba'},
+  {key:'scz', label:'Santa Cruz'},
+  {key:'anapo', label:'Anapo'},
+];
+const SOY_PRODUCTS = [
+  {key:'soya_fob', label:'Soya FOB'},
+  {key:'aceite_fob', label:'Aceite FOB'},
+  {key:'torta_soya_fob', label:'Torta de soya FOB'},
+];
+const SOY_REGIONS = [
+  {key:'peru', label:'Perú'},
+  {key:'bolivia', label:'Bolivia'},
+  {key:'chicago', label:'Chicago'},
+  {key:'argentina', label:'Argentina'},
+];
+const FREIGHT_ROUTES = [
+  {key:'lima', label:'Lima'},
+  {key:'arica', label:'Arica'},
+];
+
+// ---- charts -----------------------------------------------------------
+async function loadHistory(){
+  try {
+    const res = await fetch('processed/history.json', {cache:'no-store'});
+    if (!res.ok) return [];
+    return await res.json();
+  } catch { return []; }
+}
+
+let grainsChart, soyChart, freightChart;
+
+function lineDataset(label, color, points){
+  return {
+    label, data: points, borderColor: color, backgroundColor: color,
+    borderWidth: 2, tension: 0.25, spanGaps: true, pointRadius: 3,
+  };
+}
+
+function baseOptions(){
+  return {
+    responsive: true,
+    animation: false,
+    scales: {
+      x: { ticks: { color: '#9BA192', font: {family:'JetBrains Mono', size: 11} }, grid: { color: '#262B22' } },
+      y: { ticks: { color: '#9BA192', font: {family:'JetBrains Mono', size: 11} }, grid: { color: '#262B22' } },
+    },
+    plugins: {
+      legend: { labels: { color: '#EDEAD4', font: {family:'JetBrains Mono', size: 11}, boxWidth: 12 } },
+    },
+  };
+}
+
+async function renderAllCharts(){
+  const history = await loadHistory();
+  const all = history.slice().sort((a,b) => a.date.localeCompare(b.date));
+  const labels = all.map(s => s.date);
+
+  renderGrains(all, labels);
+  renderSoy(all, labels);
+  renderFreight(all, labels);
+}
+
+function toggleEmpty(id, hasData){
+  document.getElementById(id).style.display = hasData ? 'none' : 'block';
+}
+
+function renderGrains(all, labels){
+  const hasData = all.length > 0;
+  toggleEmpty('grainsEmpty', hasData);
+  document.getElementById('grainsChart').style.display = hasData ? 'block' : 'none';
+  if (!hasData) return;
+
+  const colors = ['#D9A441', '#C97A3E', '#8B6A2E', '#B99A5F'];
+  const datasets = [];
+  GRAIN_PRODUCTS.forEach((p, i) => {
+    GRAIN_REGIONS.forEach((r, j) => {
+      const points = all.map(s => (s.grains && s.grains[p.key] && s.grains[p.key][r.key] !== undefined) ? s.grains[p.key][r.key] : null);
+      if (points.some(v => v !== null)) {
+        datasets.push(lineDataset(`${p.label} · ${r.label}`, colors[(i*GRAIN_REGIONS.length + j) % colors.length], points));
+      }
+    });
+  });
+  if (grainsChart) grainsChart.destroy();
+  grainsChart = new Chart(document.getElementById('grainsChart'), { type:'line', data:{labels, datasets}, options: baseOptions() });
+}
+
+function renderSoy(all, labels){
+  const hasData = all.length > 0;
+  toggleEmpty('soyEmpty', hasData);
+  document.getElementById('soyChart').style.display = hasData ? 'block' : 'none';
+  if (!hasData) return;
+
+  const colors = ['#8CAE7C', '#6B8F5C', '#4E7A44', '#A9C29B'];
+  const datasets = [];
+  SOY_PRODUCTS.forEach((p, i) => {
+    SOY_REGIONS.forEach((r, j) => {
+      const points = all.map(s => (s.soy_complex && s.soy_complex[p.key] && s.soy_complex[p.key][r.key] !== undefined) ? s.soy_complex[p.key][r.key] : null);
+      if (points.some(v => v !== null)) {
+        datasets.push(lineDataset(`${p.label} · ${r.label}`, colors[(i*SOY_REGIONS.length + j) % colors.length], points));
+      }
+    });
+  });
+  if (soyChart) soyChart.destroy();
+  soyChart = new Chart(document.getElementById('soyChart'), { type:'line', data:{labels, datasets}, options: baseOptions() });
+}
+
+function renderFreight(all, labels){
+  const hasData = all.length > 0;
+  toggleEmpty('freightEmpty', hasData);
+  document.getElementById('freightChart').style.display = hasData ? 'block' : 'none';
+  if (!hasData) return;
+
+  const colors = ['#7FA6C4', '#5A85A8'];
+  const datasets = FREIGHT_ROUTES.map((r, i) => {
+    const points = all.map(s => (s.freight && s.freight[r.key] !== undefined) ? s.freight[r.key] : null);
+    return lineDataset(r.label, colors[i % colors.length], points);
+  });
+  if (freightChart) freightChart.destroy();
+  freightChart = new Chart(document.getElementById('freightChart'), { type:'line', data:{labels, datasets}, options: baseOptions() });
+}
+
+// ---- init ---------------------------------------------------------------
+renderAllCharts();
+</script>
+
+</body>
 </html>
