@@ -1,1 +1,52 @@
-[]
+[
+  {
+    "date": "3/7/2026 10:20:23",
+    "source_file": "google-form",
+    "grains": {
+      "maiz": {
+        "cbba": 312.0,
+        "scz": 312.0,
+        "anapo": 41.0
+      },
+      "sorgo": {
+        "cbba": 543.0,
+        "scz": 414.0,
+        "anapo": 532.0
+      },
+      "harina_integral": {
+        "cbba": 532.0,
+        "scz": 523.0,
+        "anapo": 523.0
+      },
+      "harina_solvente": {
+        "cbba": 532.0,
+        "scz": 532.0,
+        "anapo": 532.0
+      }
+    },
+    "soy_complex": {
+      "soya_fob": {
+        "peru": 521.0,
+        "bolivia": 5213.0,
+        "chicago": 521.0,
+        "argentina": 5132.0
+      },
+      "aceite_fob": {
+        "peru": 643.0,
+        "bolivia": 5231.0,
+        "chicago": 521.0,
+        "argentina": 532.0
+      },
+      "torta_soya_fob": {
+        "peru": 5321.3,
+        "bolivia": 512.51,
+        "chicago": 532.1,
+        "argentina": 532.2
+      }
+    },
+    "freight": {
+      "lima": 342.0,
+      "arica": 432.0
+    }
+  }
+]
