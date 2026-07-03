@@ -21,7 +21,7 @@ jobs:
 
       - name: Sync Google Form responses into history.json
         id: sync
-        run: python scripts/sync_form_to_history.py
+        run: python data/sync_form_to_history.py
 
       - name: Commit updated history.json
         run: |
