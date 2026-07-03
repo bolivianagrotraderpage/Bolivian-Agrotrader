@@ -111,69 +111,6 @@
 </style>
 </head>
 <body>
-
-<header>
-  <div class="eyebrow">Reporte de mercado · actualizado periódicamente</div>
-  <h1>Precios agropecuarios — Bolivia</h1>
-  <p>Maíz, sorgo y harinas · complejo soya FOB · fletes Lima / Arica</p>
-</header>
-
-<main>
-
-  <section id="grains-section">
-    <span class="group-label grain">Granos</span>
-    <h2>Maíz, sorgo y harinas</h2>
-    <div class="sub">Cochabamba · Santa Cruz · Anapo</div>
-    <div class="chart-panel">
-      <canvas id="grainsChart"></canvas>
-      <div id="grainsEmpty" class="empty-state">Aún no hay datos. Agregue un registro abajo para comenzar la serie.</div>
-    </div>
-  </section>
-
-  <section id="soy-section">
-    <span class="group-label soy">Complejo soya</span>
-    <h2>Soya, aceite y torta — FOB</h2>
-    <div class="sub">Perú · Bolivia · Chicago · Argentina</div>
-    <div class="chart-panel">
-      <canvas id="soyChart"></canvas>
-      <div id="soyEmpty" class="empty-state">Aún no hay datos. Agregue un registro abajo para comenzar la serie.</div>
-    </div>
-  </section>
-
-  <section id="freight-section">
-    <span class="group-label freight">Fletes</span>
-    <h2>Lima y Arica</h2>
-    <div class="chart-panel">
-      <canvas id="freightChart"></canvas>
-      <div id="freightEmpty" class="empty-state">Aún no hay datos. Agregue un registro abajo para comenzar la serie.</div>
-    </div>
-  </section>
-
-  <section id="manual-entry">
-    <h2>Agregar datos manualmente</h2>
-    <div class="sub">Solo se aceptan números. Los campos vacíos se omiten de ese registro.</div>
-
-    <div class="entry-card">
-      <div class="entry-date">
-        <label for="entry-date-input">Fecha</label>
-        <input type="date" id="entry-date-input">
-      </div>
-
-      <form id="entry-form" novalidate></form>
-
-      <div class="entry-actions">
-        <button type="button" class="primary" id="add-snapshot-btn">Agregar registro</button>
-        <button type="button" class="ghost" id="download-btn">Descargar history.json</button>
-        <button type="button" class="ghost" id="clear-btn">Borrar borradores</button>
-      </div>
-      <div id="entry-status"></div>
-      <div id="draft-count"></div>
-    </div>
-  </section>
-
-</main>
-
-<script>
 // ---- field schema ---------------------------------------------------
 const GRAIN_PRODUCTS = [
   {key:'maiz', label:'Maíz'},
