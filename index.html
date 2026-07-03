@@ -1,3 +1,6 @@
+
+
+Index · HTML
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -90,7 +93,7 @@
     border:1px dashed var(--line);
     border-radius:var(--radius);
   }
-
+ 
   /* manual entry module */
   #manual-entry{
     border-top:1px solid var(--line);
@@ -123,15 +126,15 @@
 </style>
 </head>
 <body>
-
+ 
 <header>
   <div class="eyebrow">Reporte de mercado · actualizado periódicamente</div>
   <h1>Precios agropecuarios — Bolivia</h1>
   <p>Maíz, sorgo y harinas · complejo soya FOB · fletes Lima / Arica</p>
 </header>
-
+ 
 <main>
-
+ 
   <section id="grains-section">
     <span class="group-label grain">Granos</span>
     <h2>Maíz, sorgo y harinas</h2>
@@ -141,7 +144,7 @@
       <div id="grainsEmpty" class="empty-state">Aún no hay datos. Agregue un registro con el formulario abajo.</div>
     </div>
   </section>
-
+ 
   <section id="soy-section">
     <span class="group-label soy">Complejo soya</span>
     <h2>Soya, aceite y torta — FOB</h2>
@@ -151,7 +154,7 @@
       <div id="soyEmpty" class="empty-state">Aún no hay datos. Agregue un registro con el formulario abajo.</div>
     </div>
   </section>
-
+ 
   <section id="freight-section">
     <span class="group-label freight">Fletes</span>
     <h2>Lima y Arica</h2>
@@ -160,19 +163,19 @@
       <div id="freightEmpty" class="empty-state">Aún no hay datos. Agregue un registro con el formulario abajo.</div>
     </div>
   </section>
-
+ 
   <section id="manual-entry">
     <h2>Agregar datos manualmente</h2>
     <div class="sub">Use el formulario para registrar nuevos precios. Los datos se sincronizan al panel automáticamente cada hora.</div>
     <div class="entry-card">
-      <a class="entry-cta" href="https://forms.gle/18dbuNz8MTXQi2ZP6" target="_blank" rel="noopener">
+      <a class="entry-cta" href="PASTE_YOUR_GOOGLE_FORM_LINK_HERE" target="_blank" rel="noopener">
         Abrir formulario de registro →
       </a>
     </div>
   </section>
-
+ 
 </main>
-
+ 
 <script>
 // ---- field schema (kept so chart rendering can group price series) ----
 const GRAIN_PRODUCTS = [
@@ -201,7 +204,7 @@ const FREIGHT_ROUTES = [
   {key:'lima', label:'Lima'},
   {key:'arica', label:'Arica'},
 ];
-
+ 
 // ---- charts -----------------------------------------------------------
 async function loadHistory(){
   try {
@@ -210,16 +213,16 @@ async function loadHistory(){
     return await res.json();
   } catch { return []; }
 }
-
+ 
 let grainsChart, soyChart, freightChart;
-
+ 
 function lineDataset(label, color, points){
   return {
     label, data: points, borderColor: color, backgroundColor: color,
     borderWidth: 2, tension: 0.25, spanGaps: true, pointRadius: 3,
   };
 }
-
+ 
 function baseOptions(){
   return {
     responsive: true,
@@ -233,27 +236,27 @@ function baseOptions(){
     },
   };
 }
-
+ 
 async function renderAllCharts(){
   const history = await loadHistory();
   const all = history.slice().sort((a,b) => a.date.localeCompare(b.date));
   const labels = all.map(s => s.date);
-
+ 
   renderGrains(all, labels);
   renderSoy(all, labels);
   renderFreight(all, labels);
 }
-
+ 
 function toggleEmpty(id, hasData){
   document.getElementById(id).style.display = hasData ? 'none' : 'block';
 }
-
+ 
 function renderGrains(all, labels){
   const hasData = all.length > 0;
   toggleEmpty('grainsEmpty', hasData);
   document.getElementById('grainsChart').style.display = hasData ? 'block' : 'none';
   if (!hasData) return;
-
+ 
   const colors = ['#D9A441', '#C97A3E', '#8B6A2E', '#B99A5F'];
   const datasets = [];
   GRAIN_PRODUCTS.forEach((p, i) => {
@@ -267,13 +270,13 @@ function renderGrains(all, labels){
   if (grainsChart) grainsChart.destroy();
   grainsChart = new Chart(document.getElementById('grainsChart'), { type:'line', data:{labels, datasets}, options: baseOptions() });
 }
-
+ 
 function renderSoy(all, labels){
   const hasData = all.length > 0;
   toggleEmpty('soyEmpty', hasData);
   document.getElementById('soyChart').style.display = hasData ? 'block' : 'none';
   if (!hasData) return;
-
+ 
   const colors = ['#8CAE7C', '#6B8F5C', '#4E7A44', '#A9C29B'];
   const datasets = [];
   SOY_PRODUCTS.forEach((p, i) => {
@@ -287,13 +290,13 @@ function renderSoy(all, labels){
   if (soyChart) soyChart.destroy();
   soyChart = new Chart(document.getElementById('soyChart'), { type:'line', data:{labels, datasets}, options: baseOptions() });
 }
-
+ 
 function renderFreight(all, labels){
   const hasData = all.length > 0;
   toggleEmpty('freightEmpty', hasData);
   document.getElementById('freightChart').style.display = hasData ? 'block' : 'none';
   if (!hasData) return;
-
+ 
   const colors = ['#7FA6C4', '#5A85A8'];
   const datasets = FREIGHT_ROUTES.map((r, i) => {
     const points = all.map(s => (s.freight && s.freight[r.key] !== undefined) ? s.freight[r.key] : null);
@@ -302,10 +305,11 @@ function renderFreight(all, labels){
   if (freightChart) freightChart.destroy();
   freightChart = new Chart(document.getElementById('freightChart'), { type:'line', data:{labels, datasets}, options: baseOptions() });
 }
-
+ 
 // ---- init ---------------------------------------------------------------
 renderAllCharts();
 </script>
-
+ 
 </body>
 </html>
+ 
