@@ -1,1 +1,214 @@
-[]
+[
+  {
+    "date": "02/05/2026",
+    "source_file": "google-form",
+    "grains": {
+      "maiz": {
+        "scz": 100.0
+      }
+    },
+    "soy_complex": {},
+    "freight": {}
+  },
+  {
+    "date": "03/05/2026",
+    "source_file": "google-form",
+    "grains": {},
+    "soy_complex": {},
+    "freight": {}
+  },
+  {
+    "date": "04/05/2026",
+    "source_file": "google-form",
+    "grains": {
+      "maiz": {
+        "scz": 83.0
+      },
+      "sorgo": {
+        "scz": 85.0
+      },
+      "harina_integral": {
+        "scz": 3625.0
+      },
+      "harina_solvente": {
+        "scz": 3225.0
+      }
+    },
+    "soy_complex": {},
+    "freight": {}
+  },
+  {
+    "date": "05/05/2026",
+    "source_file": "google-form",
+    "grains": {
+      "maiz": {
+        "scz": 83.0
+      },
+      "sorgo": {
+        "scz": 85.0
+      },
+      "harina_integral": {
+        "scz": 3625.0
+      },
+      "harina_solvente": {
+        "scz": 3225.0
+      }
+    },
+    "soy_complex": {},
+    "freight": {}
+  },
+  {
+    "date": "06/05/2026",
+    "source_file": "google-form",
+    "grains": {
+      "maiz": {
+        "scz": 84.5
+      },
+      "sorgo": {
+        "scz": 85.5
+      },
+      "harina_integral": {
+        "scz": 3625.0
+      },
+      "harina_solvente": {
+        "scz": 3225.0
+      }
+    },
+    "soy_complex": {},
+    "freight": {}
+  },
+  {
+    "date": "07/05/2026",
+    "source_file": "google-form",
+    "grains": {
+      "maiz": {
+        "scz": 84.5
+      },
+      "sorgo": {
+        "scz": 85.5
+      },
+      "harina_integral": {
+        "scz": 3625.0
+      },
+      "harina_solvente": {
+        "scz": 3225.0
+      }
+    },
+    "soy_complex": {},
+    "freight": {}
+  },
+  {
+    "date": "08/05/2026",
+    "source_file": "google-form",
+    "grains": {
+      "maiz": {
+        "scz": 84.5
+      },
+      "sorgo": {
+        "scz": 85.5
+      },
+      "harina_integral": {
+        "scz": 3625.0
+      },
+      "harina_solvente": {
+        "scz": 3225.0
+      }
+    },
+    "soy_complex": {},
+    "freight": {}
+  },
+  {
+    "date": "09/05/2026",
+    "source_file": "google-form",
+    "grains": {},
+    "soy_complex": {},
+    "freight": {}
+  },
+  {
+    "date": "10/05/2026",
+    "source_file": "google-form",
+    "grains": {},
+    "soy_complex": {},
+    "freight": {}
+  },
+  {
+    "date": "11/05/2026",
+    "source_file": "google-form",
+    "grains": {
+      "maiz": {
+        "scz": 86.0
+      },
+      "harina_integral": {
+        "scz": 3625.0
+      },
+      "harina_solvente": {
+        "scz": 3225.0
+      }
+    },
+    "soy_complex": {},
+    "freight": {}
+  },
+  {
+    "date": "12/05/2026",
+    "source_file": "google-form",
+    "grains": {
+      "maiz": {
+        "scz": 87.5
+      },
+      "harina_integral": {
+        "scz": 3625.0
+      },
+      "harina_solvente": {
+        "scz": 3225.0
+      }
+    },
+    "soy_complex": {},
+    "freight": {}
+  },
+  {
+    "date": "13/05/2026",
+    "source_file": "google-form",
+    "grains": {
+      "maiz": {
+        "scz": 87.5
+      }
+    },
+    "soy_complex": {},
+    "freight": {}
+  },
+  {
+    "date": "14/05/2026",
+    "source_file": "google-form",
+    "grains": {},
+    "soy_complex": {},
+    "freight": {}
+  },
+  {
+    "date": "15/05/2026",
+    "source_file": "google-form",
+    "grains": {},
+    "soy_complex": {},
+    "freight": {}
+  },
+  {
+    "date": "16/05/2026",
+    "source_file": "google-form",
+    "grains": {},
+    "soy_complex": {},
+    "freight": {}
+  },
+  {
+    "date": "17/05/2026",
+    "source_file": "google-form",
+    "grains": {},
+    "soy_complex": {},
+    "freight": {}
+  },
+  {
+    "date": "18/05/2026",
+    "source_file": "google-form",
+    "grains": {},
+    "soy_complex": {},
+    "freight": {}
+  }
+]
