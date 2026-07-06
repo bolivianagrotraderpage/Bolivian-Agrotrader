@@ -1,52 +1,302 @@
 [
   {
-    "date": "3/7/2026 10:20:23",
+    "date": "07/06/2026",
     "source_file": "google-form",
     "grains": {
       "maiz": {
-        "cbba": 312.0,
-        "scz": 312.0,
-        "anapo": 41.0
+        "cbba": 399.6008627,
+        "scz": 158.5322567,
+        "anapo": 695.1286296
       },
       "sorgo": {
-        "cbba": 543.0,
-        "scz": 414.0,
-        "anapo": 532.0
+        "cbba": 458.2653625,
+        "scz": 467.2443503,
+        "anapo": 450.9095249
       },
       "harina_integral": {
-        "cbba": 532.0,
-        "scz": 523.0,
-        "anapo": 523.0
+        "cbba": 277.9722485,
+        "scz": 906.7246782,
+        "anapo": 398.6695945
       },
       "harina_solvente": {
-        "cbba": 532.0,
-        "scz": 532.0,
-        "anapo": 532.0
+        "cbba": 809.9827817,
+        "scz": 576.007893,
+        "anapo": 434.7772344
       }
     },
     "soy_complex": {
       "soya_fob": {
-        "peru": 521.0,
-        "bolivia": 5213.0,
-        "chicago": 521.0,
-        "argentina": 5132.0
+        "peru": 477.8495999,
+        "bolivia": 537.4427369,
+        "chicago": 153.6390856,
+        "argentina": 38.24827558
       },
       "aceite_fob": {
-        "peru": 643.0,
-        "bolivia": 5231.0,
-        "chicago": 521.0,
-        "argentina": 532.0
+        "peru": 828.1037264,
+        "bolivia": 250.1713959,
+        "chicago": 280.017011,
+        "argentina": 612.6189712
       },
       "torta_soya_fob": {
-        "peru": 5321.3,
-        "bolivia": 512.51,
-        "chicago": 532.1,
-        "argentina": 532.2
+        "peru": 611.0735973,
+        "bolivia": 861.0651685,
+        "chicago": 105.8918506,
+        "argentina": 47.62343588
       }
     },
     "freight": {
-      "lima": 342.0,
-      "arica": 432.0
+      "lima": 126.2116586,
+      "arica": 935.9276496
+    }
+  },
+  {
+    "date": "08/06/2026",
+    "source_file": "google-form",
+    "grains": {
+      "maiz": {
+        "cbba": 605.9086172,
+        "scz": 155.5376957,
+        "anapo": 424.9738683
+      },
+      "sorgo": {
+        "cbba": 402.4567317,
+        "scz": 48.10829522,
+        "anapo": 69.1537892
+      },
+      "harina_integral": {
+        "cbba": 806.9165792,
+        "scz": 605.9713721,
+        "anapo": 470.2365373
+      },
+      "harina_solvente": {
+        "cbba": 681.1575931,
+        "scz": 960.3057684,
+        "anapo": 338.6539845
+      }
+    },
+    "soy_complex": {
+      "soya_fob": {
+        "peru": 49.84573776,
+        "bolivia": 693.1762608,
+        "chicago": 464.8251179,
+        "argentina": 923.3355859
+      },
+      "aceite_fob": {
+        "peru": 30.76227244,
+        "bolivia": 643.7678768,
+        "chicago": 813.9416875,
+        "argentina": 427.8705867
+      },
+      "torta_soya_fob": {
+        "peru": 329.9120577,
+        "bolivia": 996.8139499,
+        "chicago": 342.0400732,
+        "argentina": 759.7404147
+      }
+    },
+    "freight": {
+      "lima": 18.90869347,
+      "arica": 512.7081526
+    }
+  },
+  {
+    "date": "09/06/2026",
+    "source_file": "google-form",
+    "grains": {
+      "maiz": {
+        "cbba": 882.5864679,
+        "scz": 350.9545738,
+        "anapo": 547.2046797
+      },
+      "sorgo": {
+        "cbba": 253.0181702,
+        "scz": 633.5833172,
+        "anapo": 908.7526444
+      },
+      "harina_integral": {
+        "cbba": 186.4336178,
+        "scz": 52.83223123,
+        "anapo": 940.9036201
+      },
+      "harina_solvente": {
+        "cbba": 272.0345887,
+        "scz": 663.7107333,
+        "anapo": 17.25565108
+      }
+    },
+    "soy_complex": {
+      "soya_fob": {
+        "peru": 903.42936,
+        "bolivia": 403.1132398,
+        "chicago": 932.026755,
+        "argentina": 675.4480264
+      },
+      "aceite_fob": {
+        "peru": 58.13032202,
+        "bolivia": 380.1912488,
+        "chicago": 298.7813719,
+        "argentina": 200.7562068
+      },
+      "torta_soya_fob": {
+        "peru": 974.5082151,
+        "bolivia": 10.05394275,
+        "chicago": 630.390465,
+        "argentina": 269.5970328
+      }
+    },
+    "freight": {
+      "lima": 220.4025233,
+      "arica": 633.3733494
+    }
+  },
+  {
+    "date": "10/06/2026",
+    "source_file": "google-form",
+    "grains": {
+      "maiz": {
+        "cbba": 957.5074623,
+        "scz": 132.3467331,
+        "anapo": 92.00393805
+      },
+      "sorgo": {
+        "cbba": 680.034079,
+        "scz": 230.8091664,
+        "anapo": 113.7195644
+      },
+      "harina_integral": {
+        "cbba": 328.3197122,
+        "scz": 538.6957232,
+        "anapo": 398.9117426
+      },
+      "harina_solvente": {
+        "cbba": 428.2905602,
+        "scz": 489.3719032,
+        "anapo": 1.074331222
+      }
+    },
+    "soy_complex": {
+      "soya_fob": {
+        "peru": 312.6252399,
+        "bolivia": 174.3220265,
+        "chicago": 703.1270032,
+        "argentina": 43.24039512
+      },
+      "aceite_fob": {
+        "peru": 961.9578494,
+        "bolivia": 300.5468536,
+        "chicago": 149.8331647,
+        "argentina": 325.5270365
+      },
+      "torta_soya_fob": {
+        "peru": 753.1742124,
+        "bolivia": 772.6837895,
+        "chicago": 214.9401481,
+        "argentina": 342.4464878
+      }
+    },
+    "freight": {
+      "lima": 175.1072893,
+      "arica": 626.1682239
+    }
+  },
+  {
+    "date": "11/06/2026",
+    "source_file": "google-form",
+    "grains": {
+      "maiz": {
+        "cbba": 835.4312472,
+        "scz": 666.3024517,
+        "anapo": 726.7264154
+      },
+      "sorgo": {
+        "cbba": 959.8532414,
+        "scz": 694.239981,
+        "anapo": 132.8294914
+      },
+      "harina_integral": {
+        "cbba": 201.7730757,
+        "scz": 805.9455037,
+        "anapo": 887.0419477
+      },
+      "harina_solvente": {
+        "cbba": 197.1796235,
+        "scz": 508.9328524,
+        "anapo": 425.3369979
+      }
+    },
+    "soy_complex": {
+      "soya_fob": {
+        "peru": 431.5739321,
+        "bolivia": 450.3728946,
+        "chicago": 375.9717777,
+        "argentina": 448.787331
+      },
+      "aceite_fob": {
+        "peru": 41.46399107,
+        "bolivia": 942.7829941,
+        "chicago": 381.2046288,
+        "argentina": 544.6938756
+      },
+      "torta_soya_fob": {
+        "peru": 586.3234946,
+        "bolivia": 891.1677578,
+        "chicago": 210.5940648,
+        "argentina": 102.434993
+      }
+    },
+    "freight": {
+      "lima": 865.1844444,
+      "arica": 818.9914252
+    }
+  },
+  {
+    "date": "12/06/2026",
+    "source_file": "google-form",
+    "grains": {
+      "maiz": {
+        "cbba": 657.5539239,
+        "scz": 219.5980223,
+        "anapo": 149.5321599
+      },
+      "sorgo": {
+        "cbba": 704.0686777,
+        "scz": 561.0821032,
+        "anapo": 597.4810328
+      },
+      "harina_integral": {
+        "cbba": 732.3905674,
+        "scz": 931.2282907,
+        "anapo": 703.4218985
+      },
+      "harina_solvente": {
+        "cbba": 962.9715925,
+        "scz": 545.4835756,
+        "anapo": 151.1311721
+      }
+    },
+    "soy_complex": {
+      "soya_fob": {
+        "peru": 257.7120821,
+        "bolivia": 73.79275676,
+        "chicago": 629.5024616,
+        "argentina": 321.2261477
+      },
+      "aceite_fob": {
+        "peru": 107.4708405,
+        "bolivia": 49.59153233,
+        "chicago": 965.9407278,
+        "argentina": 240.2440705
+      },
+      "torta_soya_fob": {
+        "peru": 876.3474596,
+        "bolivia": 837.0698685,
+        "chicago": 455.4022555,
+        "argentina": 985.220956
+      }
+    },
+    "freight": {
+      "lima": 264.9517585,
+      "arica": 623.5941461
     }
   }
 ]
