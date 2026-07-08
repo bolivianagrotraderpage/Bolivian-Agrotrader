@@ -20,6 +20,8 @@
     --soy-dim: #3E4F35;
     --freight: #7FA6C4;
     --freight-dim: #35434E;
+    --costos: #C97A6B;
+    --costos-dim: #4E3430;
     --radius: 6px;
   }
   *{box-sizing:border-box}
@@ -55,6 +57,7 @@
   header p{color:var(--text-dim); margin-top:10px; font-size:13px;}
   main{max-width:1080px; margin:0 auto; padding:0 32px;}
   section{margin-top:56px;}
+  section:first-of-type{margin-top:40px;}
   section > h2{
     font-size:20px;
     margin-bottom:4px;
@@ -74,6 +77,7 @@
   .group-label.grain{color:var(--grain); background:var(--grain-dim);}
   .group-label.soy{color:var(--soy); background:var(--soy-dim);}
   .group-label.freight{color:var(--freight); background:var(--freight-dim);}
+  .group-label.costos{color:var(--costos); background:var(--costos-dim);}
   .chart-panel{
     background:var(--bg-panel);
     border:1px solid var(--line);
@@ -115,6 +119,58 @@
     border-radius:var(--radius);
   }
 
+  /* Costos stat tiles (card-grid style) */
+  .stat-grid{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    margin-bottom:24px;
+  }
+  .stat-tile{
+    flex:1 1 190px;
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    border-top:3px solid var(--tile-color, var(--costos));
+    border-radius:var(--radius);
+    padding:18px 20px 16px;
+  }
+  .stat-tile .tile-label{
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.09em;
+    color:var(--tile-color, var(--text-dim));
+    margin-bottom:12px;
+  }
+  .stat-tile .tile-value{
+    font-family:'Fraunces', serif;
+    font-size:28px;
+    font-weight:500;
+    color:var(--text);
+    line-height:1;
+  }
+  .stat-tile .tile-sub{
+    font-size:11px;
+    color:var(--text-dim);
+    margin-top:8px;
+  }
+
+  /* section divider between Costos and the price charts below */
+  .section-divider{
+    margin-top:56px;
+    padding-top:32px;
+    border-top:1px solid var(--line);
+    position:relative;
+  }
+  .section-divider::before{
+    content:'';
+    position:absolute;
+    top:-1px;
+    left:0;
+    width:64px;
+    height:1px;
+    background:var(--costos);
+  }
+
   /* manual entry module */
   #manual-entry{
     border-top:1px solid var(--line);
@@ -151,10 +207,26 @@
 <header>
   <div class="eyebrow">Reporte de mercado · actualizado periódicamente</div>
   <h1>Precios agropecuarios — Bolivia</h1>
-  <p>Maíz, sorgo y harinas · complejo soya FOB · fletes Lima / Arica</p>
+  <p>Costos logísticos · maíz, sorgo y harinas · complejo soya FOB · fletes Lima / Arica</p>
 </header>
 
 <main>
+
+  <section id="costos-section">
+    <span class="group-label costos">Costos</span>
+    <h2>Costo logístico — Pto Aguirre · Rosario · Callao</h2>
+    <div class="sub">Tren SCZ–Aguirre + uso de puertos + barcaza + barco + transporte final</div>
+
+    <div id="costosStatGrid" class="stat-grid"></div>
+    <div id="costosStatEmpty" class="empty-state">Aún no hay datos de costos. Agregue un registro con el formulario abajo.</div>
+
+    <div class="chart-panel">
+      <canvas id="costosChart"></canvas>
+      <div id="costosEmpty" class="empty-state">Aún no hay historial suficiente para graficar la tendencia.</div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
 
   <section id="grains-section">
     <span class="group-label grain">Granos</span>
@@ -228,6 +300,18 @@ const FREIGHT_ROUTES = [
   {key:'lima', label:'Lima'},
   {key:'arica', label:'Arica'},
 ];
+const COSTOS_COMPONENTS = [
+  {key:'tren_scz_pto_aguirre', label:'Tren SCZ–Pto Aguirre'},
+  {key:'uso_pto_aguirre', label:'Uso Pto Aguirre'},
+  {key:'uso_pto_rosario', label:'Uso Pto Rosario'},
+  {key:'barcaza_pto_aguirre_rosario', label:'Barcaza Aguirre–Rosario'},
+  {key:'barco_rosario_callao', label:'Barco Rosario–Callao'},
+  {key:'uso_pto_callao', label:'Uso Pto Callao'},
+  {key:'transporte_callao_destino_final', label:'Transporte Callao–destino'},
+];
+// Cycled across the stat tiles so each card reads distinctly, same as the
+// accent colors already used for group labels elsewhere on the page.
+const TILE_COLORS = ['var(--costos)', 'var(--grain)', 'var(--freight)', 'var(--soy)'];
 
 // ---- charts -----------------------------------------------------------
 async function loadHistory(){
@@ -238,7 +322,7 @@ async function loadHistory(){
   } catch { return []; }
 }
 
-let grainsChart, soyChart, freightChart;
+let grainsChart, soyChart, freightChart, costosChart;
 
 function lineDataset(label, color, points){
   return {
@@ -266,6 +350,7 @@ async function renderAllCharts(){
   const all = history.slice().sort((a,b) => a.date.localeCompare(b.date));
   const labels = all.map(s => s.date);
 
+  renderCostos(all, labels);
   renderGrains(all, labels);
   renderSoy(all, labels);
   renderFreight(all, labels);
@@ -370,6 +455,61 @@ function renderFreight(all, labels){
   if (freightChart) freightChart.destroy();
   freightChart = new Chart(document.getElementById('freightChart'), { type:'line', data:{labels, datasets}, options: baseOptions() });
   renderFilterChips('freightFilters', () => freightChart, datasets);
+}
+
+function buildStatTile(label, value, sub, color){
+  const tile = document.createElement('div');
+  tile.className = 'stat-tile';
+  tile.style.setProperty('--tile-color', color);
+  tile.innerHTML = `
+    <div class="tile-label">${label}</div>
+    <div class="tile-value">${value}</div>
+    <div class="tile-sub">${sub}</div>
+  `;
+  return tile;
+}
+
+// Costos: today's total + each component as its own stat tile (card-grid
+// style), plus a historical trend line for the total underneath.
+// "Today" = most recent snapshot in history.json that carries a costos total.
+function renderCostos(all, labels){
+  const withCostos = all.filter(s => s.costos && s.costos.logistica_pto_aguirre_rosario_callao);
+  const hasData = withCostos.length > 0;
+
+  const grid = document.getElementById('costosStatGrid');
+  grid.innerHTML = '';
+  toggleEmpty('costosStatEmpty', hasData);
+
+  if (hasData) {
+    const latest = withCostos[withCostos.length - 1];
+    const logi = latest.costos.logistica_pto_aguirre_rosario_callao;
+    let colorIdx = 0;
+    const nextColor = () => TILE_COLORS[(colorIdx++) % TILE_COLORS.length];
+
+    grid.appendChild(buildStatTile(
+      'Total logístico', logi.total.toFixed(2), `USD · ${latest.date}`, nextColor()
+    ));
+
+    COSTOS_COMPONENTS.forEach(c => {
+      const val = logi.components ? logi.components[c.key] : undefined;
+      if (val === undefined) return;
+      grid.appendChild(buildStatTile(c.label, val.toFixed(2), `USD · ${latest.date}`, nextColor()));
+    });
+  }
+
+  const hasHistory = withCostos.length > 1;
+  document.getElementById('costosChart').style.display = hasHistory ? 'block' : 'none';
+  toggleEmpty('costosEmpty', hasHistory);
+  if (!hasHistory) return;
+
+  const costosLabels = withCostos.map(s => s.date);
+  const points = withCostos.map(s => s.costos.logistica_pto_aguirre_rosario_callao.total);
+  if (costosChart) costosChart.destroy();
+  costosChart = new Chart(document.getElementById('costosChart'), {
+    type: 'line',
+    data: { labels: costosLabels, datasets: [lineDataset('Costo logístico total (USD)', '#C97A6B', points)] },
+    options: baseOptions(),
+  });
 }
 
 // ---- init ---------------------------------------------------------------
