@@ -47,6 +47,29 @@ COLUMN_MAP = {
     "Flete - Arica":                  ("freight", None, "arica"),
 }
 
+# --- Costos: logistics build-up for the Pto Aguirre - Rosario - Callao route ---
+# Google Form question titles -> costos component key.
+# Source: "Construcción_de_costos_de_venta.xlsx", sheet "Recepción de datos",
+# rows 11-17 (the components that feed the "Costos Pto Aguirre - Rosario -
+# Callao" total, originally =SUM(C11:C20) = 193).
+COST_COLUMN_MAP = {
+    "Tren SCZ - Pto Aguirre":            "tren_scz_pto_aguirre",
+    "Uso de Pto Aguirre":                "uso_pto_aguirre",
+    "Uso de Pto Rosario":                "uso_pto_rosario",
+    "Barcaza Pto Aguirre - Rosario":     "barcaza_pto_aguirre_rosario",
+    "Barco Rosario - Callao":            "barco_rosario_callao",
+    "Uso Pto Callao":                    "uso_pto_callao",
+    "Transporte Callao - destino final": "transporte_callao_destino_final",
+}
+
+# Fields intended to eventually come from a public trading/API source
+# (e.g. CBOT reference price). Until that's wired up, these are collected
+# manually (Form or Sheet) same as everything else — listed here only so
+# it's clear which fields are the future API-replacement candidates.
+COST_API_STUB_FIELDS: dict[str, str] = {
+    # "CBOT Soya (referencial)": "cbot_soya_ref",
+}
+
 DATE_COLUMN = "Fecha"
 
 
@@ -79,6 +102,32 @@ def to_float(v):
         return None
 
 
+def build_costos(row: dict) -> dict:
+    """Collects the logistics components and computes the route total,
+    mirroring the =SUM(C11:C20) formula from the source workbook."""
+    components = {}
+    for column, key in COST_COLUMN_MAP.items():
+        val = to_float(row.get(column))
+        if val is not None:
+            components[key] = val
+
+    for column, key in COST_API_STUB_FIELDS.items():
+        val = to_float(row.get(column))
+        if val is not None:
+            components[key] = val
+
+    if not components:
+        return {}
+
+    total = sum(components.values())
+    return {
+        "logistica_pto_aguirre_rosario_callao": {
+            "components": components,
+            "total": round(total, 2),
+        }
+    }
+
+
 def build_snapshot(row: dict) -> dict:
     snapshot = {
         "date": row.get(DATE_COLUMN, "").strip(),
@@ -86,6 +135,7 @@ def build_snapshot(row: dict) -> dict:
         "grains": {},
         "soy_complex": {},
         "freight": {},
+        "costos": {},
     }
     for column, (group, product, region) in COLUMN_MAP.items():
         val = to_float(row.get(column))
@@ -95,6 +145,11 @@ def build_snapshot(row: dict) -> dict:
             snapshot["freight"][region] = val
         else:
             snapshot[group].setdefault(product, {})[region] = val
+
+    costos = build_costos(row)
+    if costos:
+        snapshot["costos"] = costos
+
     return snapshot
 
 
