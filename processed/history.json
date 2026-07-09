@@ -915,16 +915,16 @@
     "freight": {},
     "costos": {
       "venta_soja_rosario": {
-        "costo_g_industrial": 296.78,
+        "costo_g_industrial": 285.99,
         "fob_pto_aguirre": {
-          "aceite": 1065.23,
-          "solvente": 244.4,
-          "grano": 358.12
+          "aceite": 1047.83,
+          "solvente": 247.4,
+          "grano": 341.12
         },
         "fca_scz_montero": {
-          "aceite": 1018.38,
-          "solvente": 197.55,
-          "grano": 301.27
+          "aceite": 986.92,
+          "solvente": 200.55,
+          "grano": 294.27
         }
       }
     }
