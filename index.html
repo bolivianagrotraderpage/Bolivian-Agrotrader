@@ -122,6 +122,9 @@
   /* FOB / FCA product cards (Hoja de costos Rosario / Lima) — based on the
      provided sketch: a two-line label block on top, divided from a big
      number below, restyled to match the page's dark theme. */
+  .market-title{
+    text-align:center;
+  }
   .costos-subhead{
     font-family:'Fraunces', serif;
     font-size:18px;
@@ -130,21 +133,27 @@
     margin-top:8px;
   }
   /* internal separator between FOB/FCA (and Rosario/Lima blocks) — a
-     solid line with a short colored accent tick, clearly visible but
-     without the gradient fade + glow the major section dividers use. */
+     gradient line that fades in from both edges and meets/brightens at
+     the center, clearly visible but flatter than the major section
+     dividers (no glow, no marker dot). */
   .subtle-divider{
     height:2px;
-    background:var(--line);
     margin:32px 0;
-    position:relative;
+    background:linear-gradient(90deg,
+      transparent 0%,
+      var(--line) 22%,
+      var(--costos) 50%,
+      var(--line) 78%,
+      transparent 100%);
   }
-  .subtle-divider::before{
-    content:'';
-    position:absolute;
-    top:0; left:0;
-    width:56px;
-    height:2px;
-    background:var(--costos);
+  /* two parallel gradient lines, used right before each market's title
+     to mark the start of a new market's data. */
+  .double-line-divider{
+    height:6px;
+    margin:28px 0 20px;
+    background:
+      linear-gradient(90deg, transparent 0%, var(--costos) 50%, transparent 100%) top / 100% 2px no-repeat,
+      linear-gradient(90deg, transparent 0%, var(--costos) 50%, transparent 100%) bottom / 100% 2px no-repeat;
   }
   .fob-subsection{
     margin-bottom:28px;
@@ -282,8 +291,10 @@
 
   <section id="costos-section">
     <span class="group-label costos">Precios de mercado</span>
-    <h2>Venta de soja — mercado Rosario</h2>
-    <div class="sub">FOB Pto Aguirre y FCA SCZ (Montero) por producto</div>
+
+    <div class="double-line-divider"></div>
+    <h2 class="market-title">Venta de soja — mercado Rosario</h2>
+    <div class="sub market-title">FOB Pto Aguirre y FCA SCZ (Montero) por producto</div>
 
     <div class="fob-subsection">
       <div class="fob-subsection-label">FOB Pto Aguirre</div>
@@ -299,7 +310,7 @@
 
     <div id="fobEmpty" class="empty-state">Aún no hay datos de FOB / FCA. Se toman de la hoja de costos Rosario.</div>
 
-    <div class="subtle-divider lima-subsection"></div>
+    <div class="double-line-divider lima-subsection"></div>
 
     <div class="lima-subsection" style="text-align:center;">
       <div class="costos-subhead">Venta de soja — mercado de Lima</div>
