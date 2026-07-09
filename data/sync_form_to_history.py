@@ -98,8 +98,10 @@ COSTOS_PRODUCTO_COLUMNS = {
 # is the reference cost subtracted from the FCA Grano value to decide
 # INDUSTRIAL vs GRANOS on the webpage (comparison done in JS, not here).
 # Only applies to the FCA SCZ (Montero) stage, not FOB Pto Aguirre.
+# Matched as a substring (see parse_costos_sheet_csv) so trailing wording
+# like "FCA SCZ para Rosario" can vary without breaking the match.
 COSTOS_SCALAR_ROW_LABELS = {
-    "precio del grano procesado fca scz para rosario": "costo_g_industrial",
+    "precio del grano procesado": "costo_g_industrial",
 }
 
 
@@ -177,15 +179,24 @@ def parse_costos_sheet_csv(csv_text: str) -> dict:
     for row in rows:
         if not row:
             continue
+        matched_key = None
+        matched_j = None
         for j, cell in enumerate(row):
             norm = _normalize(cell)
-            if norm in COSTOS_SCALAR_ROW_LABELS:
-                key = COSTOS_SCALAR_ROW_LABELS[norm]
-                for later_cell in row[j + 1:]:
-                    val = to_float(later_cell)
-                    if val is not None:
-                        result[key] = val
-                        break
+            if not norm:
+                continue
+            for phrase, key in COSTOS_SCALAR_ROW_LABELS.items():
+                if phrase in norm:
+                    matched_key, matched_j = key, j
+                    break
+            if matched_key:
+                break
+        if not matched_key:
+            continue
+        for later_cell in row[matched_j + 1:]:
+            val = to_float(later_cell)
+            if val is not None:
+                result[matched_key] = val
                 break
 
     # --- per-product table (Aceite / Solvente / Grano columns) ---
@@ -228,6 +239,35 @@ def parse_costos_sheet_csv(csv_text: str) -> dict:
     return result
 
 
+def _print_label_hints(csv_text: str, missing_keys: set) -> None:
+    """When an expected row wasn't matched, scan the sheet for label cells
+    that share key words with what we're looking for (e.g. 'grano',
+    'industrial') and print them verbatim - the fastest way to spot a
+    wording mismatch without round-tripping through chat."""
+    keywords_by_key = {
+        "costo_g_industrial": ("grano", "industrial"),
+        "fob_pto_aguirre": ("fob", "aguirre"),
+        "fca_scz_montero": ("fca", "montero"),
+    }
+    needed_keywords = set()
+    for key in missing_keys:
+        needed_keywords.update(keywords_by_key.get(key, ()))
+    if not needed_keywords:
+        return
+
+    candidates = []
+    for row in csv.reader(StringIO(csv_text)):
+        for cell in row:
+            norm = _normalize(cell)
+            if len(norm) > 3 and any(kw in norm for kw in needed_keywords):
+                candidates.append(cell.strip())
+    if candidates:
+        unique = list(dict.fromkeys(candidates))[:10]
+        print(f"[costos]   possible label cells found in the sheet: {unique}")
+    else:
+        print("[costos]   no cells with matching keywords found at all - check the sheet/tab is the right one.")
+
+
 def main():
     form_csv = fetch_csv(FORM_CSV_URL, required_marker=DATE_COLUMN)
     if form_csv is None:
@@ -265,6 +305,12 @@ def main():
             today_costos[costos_key] = parsed
             found_rows = ", ".join(parsed.keys())
             print(f"[costos] '{costos_key}': fetched {row_count} CSV line(s), matched rows: {found_rows}")
+
+            expected_keys = set(COSTOS_PRODUCTO_ROW_LABELS.values()) | set(COSTOS_SCALAR_ROW_LABELS.values())
+            missing_keys = expected_keys - set(parsed.keys())
+            if missing_keys:
+                print(f"[costos] '{costos_key}': WARNING - expected but missing: {', '.join(sorted(missing_keys))}")
+                _print_label_hints(csv_text, missing_keys)
         else:
             print(
                 f"[costos] '{costos_key}': fetched {row_count} CSV line(s) but found NO matching data. "
