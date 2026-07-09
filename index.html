@@ -62,7 +62,7 @@
     font-size:20px;
     margin-bottom:4px;
   }
-  section > .sub{color:var(--text-dim); font-size:12px; margin-bottom:20px;}
+  .sub{color:var(--text-dim); font-size:12px; margin-bottom:20px;}
   .group-label{
     display:inline-flex;
     align-items:center;
@@ -119,9 +119,18 @@
     border-radius:var(--radius);
   }
 
-  /* FOB / FCA product cards (Hoja de costos Rosario) — based on the
+  /* FOB / FCA product cards (Hoja de costos Rosario / Lima) — based on the
      provided sketch: a two-line label block on top, divided from a big
      number below, restyled to match the page's dark theme. */
+  .costos-subhead{
+    font-family:'Fraunces', serif;
+    font-size:18px;
+    font-weight:500;
+    color:var(--text);
+    margin-top:40px;
+    padding-top:24px;
+    border-top:1px dashed var(--line);
+  }
   .fob-subsection{
     margin-bottom:28px;
   }
@@ -264,6 +273,23 @@
     </div>
 
     <div id="fobEmpty" class="empty-state">Aún no hay datos de FOB / FCA. Se toman de la hoja de costos Rosario.</div>
+
+    <div class="lima-subsection">
+      <div class="costos-subhead">Costos de Lima</div>
+      <div class="sub">FOB Desaguadero y FCA SCZ (Montero) por producto · costo de G industrial compartido con Rosario</div>
+    </div>
+
+    <div class="fob-subsection lima-subsection">
+      <div class="fob-subsection-label">FOB Desaguadero</div>
+      <div id="limaGridFob" class="fob-section-grid"></div>
+    </div>
+
+    <div class="fob-subsection lima-subsection">
+      <div class="fob-subsection-label">FCA SCZ (Montero)</div>
+      <div id="limaGridFca" class="fob-section-grid"></div>
+    </div>
+
+    <div id="limaEmpty" class="empty-state">Aún no hay datos de costos de Lima. Se toman de la hoja de costos Lima.</div>
   </section>
 
   <div class="section-divider"></div>
@@ -386,6 +412,7 @@ async function renderAllCharts(){
   const labels = all.map(s => s.date);
 
   renderVentaSoja(all);
+  renderCostosLima(all);
   renderGrains(all, labels);
   renderSoy(all, labels);
   renderFreight(all, labels);
@@ -568,7 +595,7 @@ function renderVentaSoja(all){
   const hasData = withData.length > 0;
   toggleEmpty('fobEmpty', hasData);
 
-  document.querySelectorAll('.fob-subsection').forEach(el => el.style.display = hasData ? 'block' : 'none');
+  document.querySelectorAll('.fob-subsection:not(.lima-subsection)').forEach(el => el.style.display = hasData ? 'block' : 'none');
   if (!hasData) return;
 
   const latest = withData[withData.length - 1];
@@ -579,6 +606,30 @@ function renderVentaSoja(all){
 
   renderVentaSojaSection('fobGridFob', 'FOB Pto Aguirre', venta.fob_pto_aguirre, costoGIndustrial, latest.date, false);
   renderVentaSojaSection('fobGridFca', 'FCA SCZ (Montero)', venta.fca_scz_montero, costoGIndustrial, latest.date, true);
+}
+
+// Costos de Lima: FOB Desaguadero / FCA SCZ (Montero), same card pattern
+// as Rosario, read from its own sheet (costos.venta_soja_lima). Per
+// instruction, the Costo de G industrial / INDUSTRIAL-GRANOS decision
+// reuses Rosario's costo_g_industrial rather than reading a separate one
+// from the Lima sheet.
+function renderCostosLima(all){
+  const limaData = all.filter(s => s.costos && s.costos.venta_soja_lima);
+  const hasData = limaData.length > 0;
+  toggleEmpty('limaEmpty', hasData);
+
+  document.querySelectorAll('.lima-subsection').forEach(el => el.style.display = hasData ? 'block' : 'none');
+  if (!hasData) return;
+
+  const latestLima = limaData[limaData.length - 1];
+  const venta = latestLima.costos.venta_soja_lima;
+
+  const rosarioData = all.filter(s => s.costos && s.costos.venta_soja_rosario);
+  const latestRosario = rosarioData[rosarioData.length - 1];
+  const costoGIndustrial = latestRosario ? latestRosario.costos.venta_soja_rosario.costo_g_industrial : undefined;
+
+  renderVentaSojaSection('limaGridFob', 'FOB Desaguadero', venta.fob_desaguadero, costoGIndustrial, latestLima.date, false);
+  renderVentaSojaSection('limaGridFca', 'FCA SCZ (Montero)', venta.fca_scz_montero, costoGIndustrial, latestLima.date, true);
 }
 
 // ---- init ---------------------------------------------------------------
