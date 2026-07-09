@@ -917,13 +917,13 @@
       "venta_soja_rosario": {
         "fob_pto_aguirre": {
           "aceite": 1065.23,
-          "solvente": 257.4,
-          "grano": 371.12
+          "solvente": 244.4,
+          "grano": 358.12
         },
         "fca_scz_montero": {
           "aceite": 1018.38,
-          "solvente": 210.55,
-          "grano": 324.27
+          "solvente": 197.55,
+          "grano": 301.27
         }
       }
     }
