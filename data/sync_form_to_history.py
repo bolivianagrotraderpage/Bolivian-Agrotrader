@@ -38,11 +38,13 @@ from pathlib import Path
 FORM_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRHWIio7FAVHaT8BrxgZaT-SpAxulHLv9NkL_WZwSBOmZRKUy9NIFNiZWiFllj6NiB5COwNxL73LEDr/pub?gid=345760016&single=true&output=csv"
 
 # costos.<key> -> published CSV URL for that route/sheet.
-# "rosario" is the MVP; add more route sheets here as they're published
+# Add more route sheets here as they're published
 # (e.g. "venta_soja_callao": "https://...pub?gid=...&single=true&output=csv").
 COSTOS_SHEETS = {
     # tab: "HC Rosario"
     "venta_soja_rosario": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ39PJM93JRVCt38Ryr_xBQbiDNEGzreH5ydhtmVF3w3ZI3oVHLZBiFtyKmmd3pPHhK4mAOVkW1tvti/pub?gid=62916827&single=true&output=csv",
+    # tab: "HC Lima" - paste the real published CSV link once you have it.
+    "venta_soja_lima": "PASTE_HOJA_DE_COSTOS_LIMA_CSV_URL_HERE",
 }
 
 # Google Form question titles -> (group, product, region)
@@ -78,11 +80,15 @@ COLUMN_MAP = {
 
 DATE_COLUMN = "Fecha"
 
-# --- "Hoja de costos Rosario" (per-product FOB / FCA values) ---
-# Row-label (normalized) -> key in costos.venta_soja_rosario.
+# --- Per-product cost tables (FOB / FCA values) ---
+# Row-label (normalized) -> key in costos.<route>.
 # These rows have one value per product column (Aceite/Solvente/Grano).
+# Shared across all COSTOS_SHEETS entries: Rosario uses "FOB Pto Aguirre",
+# Lima uses "FOB Desaguadero"; both routes share the "FCA SCZ (montero)"
+# label for their final stage.
 COSTOS_PRODUCTO_ROW_LABELS = {
     "fob pto aguirre": "fob_pto_aguirre",
+    "fob desaguadero": "fob_desaguadero",
     "fca scz (montero)": "fca_scz_montero",
     "fca scz montero": "fca_scz_montero",
 }
@@ -102,6 +108,17 @@ COSTOS_PRODUCTO_COLUMNS = {
 # like "FCA SCZ para Rosario" can vary without breaking the match.
 COSTOS_SCALAR_ROW_LABELS = {
     "precio del grano procesado": "costo_g_industrial",
+}
+
+
+# Which parsed keys each route sheet is expected to produce - used only
+# for the "expected but missing" diagnostic below, so e.g. Lima (which has
+# no costo_g_industrial row of its own - it reuses Rosario's) doesn't get
+# a false warning. New sheets not listed here fall back to checking
+# against every known key.
+COSTOS_SHEET_EXPECTED_KEYS = {
+    "venta_soja_rosario": {"fob_pto_aguirre", "fca_scz_montero", "costo_g_industrial"},
+    "venta_soja_lima": {"fob_desaguadero", "fca_scz_montero"},
 }
 
 
@@ -247,6 +264,7 @@ def _print_label_hints(csv_text: str, missing_keys: set) -> None:
     keywords_by_key = {
         "costo_g_industrial": ("grano", "industrial"),
         "fob_pto_aguirre": ("fob", "aguirre"),
+        "fob_desaguadero": ("fob", "desaguadero"),
         "fca_scz_montero": ("fca", "montero"),
     }
     needed_keywords = set()
@@ -306,7 +324,8 @@ def main():
             found_rows = ", ".join(parsed.keys())
             print(f"[costos] '{costos_key}': fetched {row_count} CSV line(s), matched rows: {found_rows}")
 
-            expected_keys = set(COSTOS_PRODUCTO_ROW_LABELS.values()) | set(COSTOS_SCALAR_ROW_LABELS.values())
+            all_known_keys = set(COSTOS_PRODUCTO_ROW_LABELS.values()) | set(COSTOS_SCALAR_ROW_LABELS.values())
+            expected_keys = COSTOS_SHEET_EXPECTED_KEYS.get(costos_key, all_known_keys)
             missing_keys = expected_keys - set(parsed.keys())
             if missing_keys:
                 print(f"[costos] '{costos_key}': WARNING - expected but missing: {', '.join(sorted(missing_keys))}")
