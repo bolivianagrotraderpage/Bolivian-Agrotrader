@@ -44,7 +44,7 @@ COSTOS_SHEETS = {
     # tab: "HC Rosario"
     "venta_soja_rosario": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ39PJM93JRVCt38Ryr_xBQbiDNEGzreH5ydhtmVF3w3ZI3oVHLZBiFtyKmmd3pPHhK4mAOVkW1tvti/pub?gid=62916827&single=true&output=csv",
     # tab: "HC Lima" - paste the real published CSV link once you have it.
-    "venta_soja_lima": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ39PJM93JRVCt38Ryr_xBQbiDNEGzreH5ydhtmVF3w3ZI3oVHLZBiFtyKmmd3pPHhK4mAOVkW1tvti/pub?gid=1317820090&single=true&output=csv",
+    "venta_soja_lima": "PASTE_HOJA_DE_COSTOS_LIMA_CSV_URL_HERE",
 }
 
 # Google Form question titles -> (group, product, region)
@@ -112,13 +112,11 @@ COSTOS_SCALAR_ROW_LABELS = {
 
 
 # Which parsed keys each route sheet is expected to produce - used only
-# for the "expected but missing" diagnostic below, so e.g. Lima (which has
-# no costo_g_industrial row of its own - it reuses Rosario's) doesn't get
-# a false warning. New sheets not listed here fall back to checking
-# against every known key.
+# for the "expected but missing" diagnostic below. New sheets not listed
+# here fall back to checking against every known key.
 COSTOS_SHEET_EXPECTED_KEYS = {
     "venta_soja_rosario": {"fob_pto_aguirre", "fca_scz_montero", "costo_g_industrial"},
-    "venta_soja_lima": {"fob_desaguadero", "fca_scz_montero"},
+    "venta_soja_lima": {"fob_desaguadero", "fca_scz_montero", "costo_g_industrial"},
 }
 
 
