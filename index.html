@@ -549,7 +549,7 @@ function renderVentaSojaSection(containerId, metricLabel, values, costoGIndustri
 
   const indG = computeIndG(values.grano, costoGIndustrial);
   const resultCard = buildFobCard(
-    'Resultado', 'Grano vs. costo',
+    'Resultado', 'Grano vs. industrial',
     indG !== null ? indG : '—',
     indG !== null ? 'Grano − costo < 0 → INDUSTRIAL' : 'pendiente costo G industrial',
     'var(--soy)'
