@@ -276,7 +276,7 @@
 
     <div class="lima-subsection">
       <div class="costos-subhead">Costos de Lima</div>
-      <div class="sub">FOB Desaguadero y FCA SCZ (Montero) por producto · costo de G industrial compartido con Rosario</div>
+      <div class="sub">FOB Desaguadero y FCA SCZ (Montero) por producto</div>
     </div>
 
     <div class="fob-subsection lima-subsection">
@@ -609,10 +609,8 @@ function renderVentaSoja(all){
 }
 
 // Costos de Lima: FOB Desaguadero / FCA SCZ (Montero), same card pattern
-// as Rosario, read from its own sheet (costos.venta_soja_lima). Per
-// instruction, the Costo de G industrial / INDUSTRIAL-GRANOS decision
-// reuses Rosario's costo_g_industrial rather than reading a separate one
-// from the Lima sheet.
+// as Rosario, read from its own sheet (costos.venta_soja_lima), including
+// its own Costo de G industrial / INDUSTRIAL-GRANOS decision.
 function renderCostosLima(all){
   const limaData = all.filter(s => s.costos && s.costos.venta_soja_lima);
   const hasData = limaData.length > 0;
@@ -623,10 +621,7 @@ function renderCostosLima(all){
 
   const latestLima = limaData[limaData.length - 1];
   const venta = latestLima.costos.venta_soja_lima;
-
-  const rosarioData = all.filter(s => s.costos && s.costos.venta_soja_rosario);
-  const latestRosario = rosarioData[rosarioData.length - 1];
-  const costoGIndustrial = latestRosario ? latestRosario.costos.venta_soja_rosario.costo_g_industrial : undefined;
+  const costoGIndustrial = venta.costo_g_industrial;
 
   renderVentaSojaSection('limaGridFob', 'FOB Desaguadero', venta.fob_desaguadero, costoGIndustrial, latestLima.date, false);
   renderVentaSojaSection('limaGridFca', 'FCA SCZ (Montero)', venta.fca_scz_montero, costoGIndustrial, latestLima.date, true);
