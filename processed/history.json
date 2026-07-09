@@ -915,6 +915,7 @@
     "freight": {},
     "costos": {
       "venta_soja_rosario": {
+        "costo_g_industrial": 296.78,
         "fob_pto_aguirre": {
           "aceite": 1065.23,
           "solvente": 244.4,
