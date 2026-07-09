@@ -1,24 +1,30 @@
 """
-Fetches two published Google Sheet CSVs and merges them into
+Fetches published Google Sheet CSVs and merges them into
 processed/history.json:
 
 1. FORM_CSV_URL   - the Form-responses sheet (one row per submission,
                      has a "Fecha" column). Feeds grains / soy_complex /
                      freight.
 
-2. COSTOS_PRODUCTO_CSV_URL - the "Hoja de costos Rosario" sheet (Aceite /
-                     Solvente / Grano columns). This sheet has no date
-                     column - it just holds today's already-computed
-                     values - so its numbers are stamped with today's date
-                     and merged into (or used to create) that day's entry.
+2. COSTOS_SHEETS  - one or more per-product cost sheets (Aceite / Solvente
+                     / Grano columns), keyed by the name they'll be stored
+                     under in costos.*. These sheets have no date column -
+                     they just hold today's already-computed values - so
+                     their numbers are stamped with today's date and
+                     merged into (or used to create) that day's entry.
+                     Rosario is the first one; add more entries here as
+                     new route sheets (Callao, Arica, etc.) get published -
+                     no other code changes needed as long as they follow
+                     the same "Aceite/Solvente/Grano columns + labeled
+                     rows" layout.
 
-Nothing is computed in Python: both sources are read as-is. The
-"declaracion de variables" sheet that feeds the Hoja de costos Rosario
-formulas is internal to the spreadsheet and is never fetched here.
+Nothing is computed in Python: every source is read as-is. The
+"declaracion de variables" sheet that feeds these sheets' formulas is
+internal to the spreadsheet and is never fetched here.
 
-Set both URLs below via File > Share > Publish to web > (sheet) >
-Comma-separated values (.csv). Leave COSTOS_PRODUCTO_CSV_URL as the
-placeholder to skip that source without breaking the sync.
+Publish each sheet via File > Share > Publish to web > (sheet) >
+Comma-separated values (.csv) and paste its link below. Leave an entry
+as the placeholder to skip that source without breaking the sync.
 """
 
 import csv
@@ -31,9 +37,12 @@ from pathlib import Path
 
 FORM_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRHWIio7FAVHaT8BrxgZaT-SpAxulHLv9NkL_WZwSBOmZRKUy9NIFNiZWiFllj6NiB5COwNxL73LEDr/pub?gid=345760016&single=true&output=csv"
 
-# "Hoja de costos Rosario" - publish this sheet separately and paste its
-# CSV link here. Left as a placeholder, this source is skipped.
-COSTOS_PRODUCTO_CSV_URL = "PASTE_HOJA_DE_COSTOS_ROSARIO_CSV_URL_HERE"
+# costos.<key> -> published CSV URL for that route/sheet.
+# "rosario" is the MVP; add more route sheets here as they're published
+# (e.g. "venta_soja_callao": "https://...pub?output=csv").
+COSTOS_SHEETS = {
+    "venta_soja_rosario": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ39PJM93JRVCt38Ryr_xBQbiDNEGzreH5ydhtmVF3w3ZI3oVHLZBiFtyKmmd3pPHhK4mAOVkW1tvti/pub?output=csv",
+}
 
 # Google Form question titles -> (group, product, region)
 # Use these EXACT strings as your Form question titles so the columns line up.
@@ -141,11 +150,13 @@ def build_snapshot(row: dict) -> dict:
     return snapshot
 
 
-def parse_costos_producto_csv(csv_text: str) -> dict:
-    """Parses the 'Hoja de costos Rosario' sheet: finds the header row
-    with the product columns, then pulls the target rows (FOB Pto Aguirre,
-    FCA SCZ Montero) by label, regardless of exact row/column position.
-    Values are read as-is; nothing is computed here."""
+def parse_costos_sheet_csv(csv_text: str) -> dict:
+    """Parses a per-product cost sheet (Aceite/Solvente/Grano columns):
+    finds the header row with the product columns, then pulls the target
+    rows (FOB Pto Aguirre, FCA SCZ Montero) by label, regardless of exact
+    row/column position. Values are read as-is; nothing is computed here.
+    Shared across all COSTOS_SHEETS entries - they're expected to follow
+    the same "Hoja de costos" layout."""
     rows = list(csv.reader(StringIO(csv_text)))
 
     col_index_by_product = {}
@@ -209,23 +220,29 @@ def main():
     if not by_date:
         sys.exit("ERROR: No valid dated rows found in the Form sheet. Aborting without writing.")
 
-    # Optional second source: today's per-product FOB / FCA values,
-    # read as-is from the already-computed sheet.
-    costos_producto_csv = fetch_csv(COSTOS_PRODUCTO_CSV_URL)
-    if costos_producto_csv is not None:
-        venta_soja = parse_costos_producto_csv(costos_producto_csv)
-        if venta_soja:
-            today = date.today().isoformat()
-            if today not in by_date:
-                by_date[today] = {
-                    "date": today,
-                    "source_file": "hoja-costos-rosario",
-                    "grains": {},
-                    "soy_complex": {},
-                    "freight": {},
-                    "costos": {},
-                }
-            by_date[today].setdefault("costos", {})["venta_soja_rosario"] = venta_soja
+    # Cost sheets: today's per-product FOB / FCA values, read as-is from
+    # each already-computed sheet. Rosario today; more routes later.
+    today_costos = {}
+    for costos_key, url in COSTOS_SHEETS.items():
+        csv_text = fetch_csv(url)
+        if csv_text is None:
+            continue
+        parsed = parse_costos_sheet_csv(csv_text)
+        if parsed:
+            today_costos[costos_key] = parsed
+
+    if today_costos:
+        today = date.today().isoformat()
+        if today not in by_date:
+            by_date[today] = {
+                "date": today,
+                "source_file": "costos-sheets",
+                "grains": {},
+                "soy_complex": {},
+                "freight": {},
+                "costos": {},
+            }
+        by_date[today].setdefault("costos", {}).update(today_costos)
 
     history = sorted(by_date.values(), key=lambda s: s["date"])
 
