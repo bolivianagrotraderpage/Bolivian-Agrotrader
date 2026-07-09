@@ -122,18 +122,27 @@
   /* FOB / FCA product cards (Hoja de costos Rosario) — based on the
      provided sketch: a two-line label block on top, divided from a big
      number below, restyled to match the page's dark theme. */
-  .fob-grid{
-    display:flex;
-    flex-wrap:wrap;
+  .fob-subsection{
+    margin-bottom:28px;
+  }
+  .fob-subsection-label{
+    color:var(--text-dim);
+    font-size:12px;
+    margin-bottom:12px;
+  }
+  .fob-section-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
     gap:14px;
-    margin-bottom:24px;
   }
   .fob-card{
-    flex:1 1 150px;
     background:var(--bg-panel);
     border:1px solid var(--line);
     border-radius:var(--radius);
     overflow:hidden;
+  }
+  .fob-card.span-2{
+    grid-column:span 2;
   }
   .fob-card .fob-card-header{
     padding:12px 16px;
@@ -163,10 +172,22 @@
     color:var(--text);
     line-height:1;
   }
+  .fob-card .fob-card-body .value.placeholder{
+    color:var(--text-dim);
+  }
+  .fob-card .fob-card-body .value.result-text{
+    font-size:17px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+  }
   .fob-card .fob-card-body .unit{
     font-size:10.5px;
     color:var(--text-dim);
     margin-top:6px;
+  }
+  @media (max-width:640px){
+    .fob-section-grid{grid-template-columns:repeat(2, 1fr);}
+    .fob-card.span-2{grid-column:span 2;}
   }
 
   /* section divider between Costos and the price charts below */
@@ -232,20 +253,17 @@
     <h2>Venta de soja — mercado Rosario</h2>
     <div class="sub">FOB Pto Aguirre y FCA SCZ (Montero) por producto</div>
 
-    <div id="fobGrid" class="fob-grid"></div>
+    <div class="fob-subsection">
+      <div class="fob-subsection-label">FOB Pto Aguirre</div>
+      <div id="fobGridFob" class="fob-section-grid"></div>
+    </div>
+
+    <div class="fob-subsection">
+      <div class="fob-subsection-label">FCA SCZ (Montero)</div>
+      <div id="fobGridFca" class="fob-section-grid"></div>
+    </div>
+
     <div id="fobEmpty" class="empty-state">Aún no hay datos de FOB / FCA. Se toman de la hoja de costos Rosario.</div>
-
-    <div class="chart-panel" id="fobFobPanel">
-      <div class="sub" style="margin-bottom:12px;">Tendencia — FOB Pto Aguirre</div>
-      <canvas id="fobFobChart"></canvas>
-      <div id="fobFobEmpty" class="empty-state">Aún no hay historial suficiente para graficar la tendencia.</div>
-    </div>
-
-    <div class="chart-panel" id="fobFcaPanel">
-      <div class="sub" style="margin-bottom:12px;">Tendencia — FCA SCZ (Montero)</div>
-      <canvas id="fobFcaChart"></canvas>
-      <div id="fobFcaEmpty" class="empty-state">Aún no hay historial suficiente para graficar la tendencia.</div>
-    </div>
   </section>
 
   <div class="section-divider"></div>
@@ -324,10 +342,6 @@ const FREIGHT_ROUTES = [
 ];
 
 // "Hoja de costos Rosario" — per-product FOB / FCA cards
-const VENTA_SOJA_METRICS = [
-  {key:'fob_pto_aguirre', label:'FOB Pto Aguirre'},
-  {key:'fca_scz_montero', label:'FCA SCZ (Montero)'},
-];
 const VENTA_SOJA_PRODUCTS = [
   {key:'aceite', label:'Aceite', color:'var(--grain)'},
   {key:'solvente', label:'Solvente', color:'var(--freight)'},
@@ -343,7 +357,7 @@ async function loadHistory(){
   } catch { return []; }
 }
 
-let grainsChart, soyChart, freightChart, fobFobChart, fobFcaChart;
+let grainsChart, soyChart, freightChart;
 
 function lineDataset(label, color, points){
   return {
@@ -478,9 +492,9 @@ function renderFreight(all, labels){
   renderFilterChips('freightFilters', () => freightChart, datasets);
 }
 
-function buildFobCard(l1, l2, value, unit, color){
+function buildFobCard(l1, l2, value, unit, color, extraClass){
   const card = document.createElement('div');
-  card.className = 'fob-card';
+  card.className = 'fob-card' + (extraClass ? ' ' + extraClass : '');
   card.style.setProperty('--card-color', color);
   card.innerHTML = `
     <div class="fob-card-header">
@@ -488,78 +502,83 @@ function buildFobCard(l1, l2, value, unit, color){
       <div class="l2">${l2}</div>
     </div>
     <div class="fob-card-body">
-      <div class="value">${value}</div>
+      <div class="value${value === '—' ? ' placeholder' : ''}">${value}</div>
       <div class="unit">${unit}</div>
     </div>
   `;
   return card;
 }
 
-// Costos: FOB Pto Aguirre / FCA SCZ (Montero) per product, read as-is from
-// the "Hoja de costos Rosario" sheet (nothing computed in JS or Python).
-// Cards show the latest snapshot; two small trend charts below show the
-// history of each metric across products.
+// "G - costo de G industrial": < 0 -> INDUSTRIAL, >= 0 -> GRANOS. Returns
+// null while either input is missing, so the box can show a placeholder
+// instead of a wrong result.
+function computeIndG(granoVal, costoVal){
+  if (granoVal === undefined || costoVal === undefined || costoVal === null) return null;
+  return (granoVal - costoVal) < 0 ? 'INDUSTRIAL' : 'GRANOS';
+}
+
+// Renders one metric's row: 3 product cards, and — only when
+// includeDecision is true — a wide "Costo de G industrial" box (spans the
+// Aceite+Solvente columns) and an INDUSTRIAL/GRANOS result box (Grano
+// column). That comparison only applies to the FCA SCZ (Montero) stage.
+function renderVentaSojaSection(containerId, metricLabel, values, costoGIndustrial, date, includeDecision){
+  const grid = document.getElementById(containerId);
+  grid.innerHTML = '';
+  if (!values) return;
+
+  VENTA_SOJA_PRODUCTS.forEach(p => {
+    const val = values[p.key];
+    grid.appendChild(buildFobCard(
+      metricLabel, p.label,
+      val !== undefined ? val.toFixed(2) : '—',
+      val !== undefined ? `USD/tm · ${date}` : 'sin dato',
+      p.color
+    ));
+  });
+
+  if (!includeDecision) return;
+
+  const costoDisplay = (costoGIndustrial !== undefined && costoGIndustrial !== null)
+    ? costoGIndustrial.toFixed(2) : '—';
+  grid.appendChild(buildFobCard(
+    'Costo de', 'G industrial',
+    costoDisplay,
+    costoDisplay === '—' ? 'por definir' : `USD/tm · ${date}`,
+    'var(--costos)', 'span-2'
+  ));
+
+  const indG = computeIndG(values.grano, costoGIndustrial);
+  const resultCard = buildFobCard(
+    'Resultado', 'Grano vs. costo',
+    indG !== null ? indG : '—',
+    indG !== null ? 'Grano − costo < 0 → INDUSTRIAL' : 'pendiente costo G industrial',
+    'var(--soy)'
+  );
+  resultCard.querySelector('.value').classList.add('result-text');
+  grid.appendChild(resultCard);
+}
+
+// Costos: FOB Pto Aguirre / FCA SCZ (Montero), each in its own section,
+// read as-is from the "Hoja de costos Rosario" sheet. The costo de G
+// industrial / INDUSTRIAL-GRANOS comparison only exists for the FCA stage
+// (rows "Precio del grano procesado FCA SCZ para Rosario" etc.), so it's
+// only rendered under the FCA section.
 function renderVentaSoja(all){
   const withData = all.filter(s => s.costos && s.costos.venta_soja_rosario);
   const hasData = withData.length > 0;
-
-  const grid = document.getElementById('fobGrid');
-  grid.innerHTML = '';
   toggleEmpty('fobEmpty', hasData);
 
-  if (hasData) {
-    const latest = withData[withData.length - 1];
-    const venta = latest.costos.venta_soja_rosario;
+  document.querySelectorAll('.fob-subsection').forEach(el => el.style.display = hasData ? 'block' : 'none');
+  if (!hasData) return;
 
-    VENTA_SOJA_METRICS.forEach(metric => {
-      const values = venta[metric.key];
-      if (!values) return;
-      VENTA_SOJA_PRODUCTS.forEach(p => {
-        const val = values[p.key];
-        if (val === undefined) return;
-        grid.appendChild(buildFobCard(
-          metric.label, p.label, val.toFixed(2), `USD/tm · ${latest.date}`, p.color
-        ));
-      });
-    });
-  }
+  const latest = withData[withData.length - 1];
+  const venta = latest.costos.venta_soja_rosario;
+  // Fetched from the sheet as a plain scalar (row "Precio del grano
+  // procesado FCA SCZ para Rosario"), not split by product.
+  const costoGIndustrial = venta.costo_g_industrial;
 
-  renderVentaSojaTrend(withData, 'fob_pto_aguirre', 'fobFobChart', 'fobFobEmpty', 'fobFobPanel', (c) => fobFobChart = c, () => fobFobChart);
-  renderVentaSojaTrend(withData, 'fca_scz_montero', 'fobFcaChart', 'fobFcaEmpty', 'fobFcaPanel', (c) => fobFcaChart = c, () => fobFcaChart);
-}
-
-function renderVentaSojaTrend(withData, metricKey, canvasId, emptyId, panelId, setChart, getChart){
-  const points = withData.filter(s => s.costos.venta_soja_rosario[metricKey]);
-  const hasHistory = points.length > 1;
-
-  document.getElementById(panelId).style.display = withData.length ? 'block' : 'none';
-  document.getElementById(canvasId).style.display = hasHistory ? 'block' : 'none';
-  toggleEmpty(emptyId, hasHistory);
-  if (!hasHistory) return;
-
-  const trendLabels = points.map(s => s.date);
-  const datasets = VENTA_SOJA_PRODUCTS.map(p => {
-    const series = points.map(s => {
-      const v = s.costos.venta_soja_rosario[metricKey][p.key];
-      return v !== undefined ? v : null;
-    });
-    return lineDataset(p.label, getComputedColor(p.color), series);
-  });
-
-  const existing = getChart();
-  if (existing) existing.destroy();
-  const chart = new Chart(document.getElementById(canvasId), {
-    type: 'line',
-    data: { labels: trendLabels, datasets },
-    options: baseOptions(),
-  });
-  setChart(chart);
-}
-
-function getComputedColor(cssVar){
-  const match = cssVar.match(/var\((--[a-z-]+)\)/);
-  if (!match) return cssVar;
-  return getComputedStyle(document.documentElement).getPropertyValue(match[1]).trim();
+  renderVentaSojaSection('fobGridFob', 'FOB Pto Aguirre', venta.fob_pto_aguirre, costoGIndustrial, latest.date, false);
+  renderVentaSojaSection('fobGridFca', 'FCA SCZ (Montero)', venta.fca_scz_montero, costoGIndustrial, latest.date, true);
 }
 
 // ---- init ---------------------------------------------------------------
