@@ -926,6 +926,40 @@
           "solvente": 200.55,
           "grano": 294.27
         }
+      },
+      "venta_soja_lima": {
+        "costo_g_industrial": 363.0,
+        "fob_desaguadero": {
+          "aceite": 1144.65,
+          "solvente": 327.69,
+          "grano": 432.73
+        },
+        "fca_scz_montero": {
+          "aceite": 1094.65,
+          "solvente": 277.69,
+          "grano": 382.73
+        }
+      },
+      "mercado_exterior": {
+        "precios": {
+          "rosario": {
+            "soya_grano": 447.46,
+            "harina_solvente": 333.4,
+            "aceite": 1156.7
+          },
+          "chicago": {
+            "soya_grano": 438.097,
+            "harina_solvente": 344.248,
+            "aceite": 1561.975
+          }
+        },
+        "base": {
+          "rosario_chicago": {
+            "soya_grano": 9.363,
+            "harina_solvente": -10.848,
+            "aceite": -405.27
+          }
+        }
       }
     }
   },
