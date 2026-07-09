@@ -129,13 +129,22 @@
     color:var(--text);
     margin-top:8px;
   }
-  /* quiet internal separator — no gradient/glow, just a plain thin line.
-     Used between FOB/FCA within a block, and between Rosario/Lima blocks. */
+  /* internal separator between FOB/FCA (and Rosario/Lima blocks) — a
+     solid line with a short colored accent tick, clearly visible but
+     without the gradient fade + glow the major section dividers use. */
   .subtle-divider{
-    height:1px;
+    height:2px;
     background:var(--line);
-    opacity:0.7;
     margin:32px 0;
+    position:relative;
+  }
+  .subtle-divider::before{
+    content:'';
+    position:absolute;
+    top:0; left:0;
+    width:56px;
+    height:2px;
+    background:var(--costos);
   }
   .fob-subsection{
     margin-bottom:28px;
@@ -272,7 +281,7 @@
 <main>
 
   <section id="costos-section">
-    <span class="group-label costos">Costos</span>
+    <span class="group-label costos">Precios de mercado</span>
     <h2>Venta de soja — mercado Rosario</h2>
     <div class="sub">FOB Pto Aguirre y FCA SCZ (Montero) por producto</div>
 
@@ -292,8 +301,8 @@
 
     <div class="subtle-divider lima-subsection"></div>
 
-    <div class="lima-subsection">
-      <div class="costos-subhead">Costos de Lima</div>
+    <div class="lima-subsection" style="text-align:center;">
+      <div class="costos-subhead">Venta de soja — mercado de Lima</div>
       <div class="sub">FOB Desaguadero y FCA SCZ (Montero) por producto</div>
     </div>
 
@@ -634,7 +643,7 @@ function renderVentaSoja(all){
   renderVentaSojaSection('fobGridFca', 'FCA SCZ (Montero)', venta.fca_scz_montero, costoGIndustrial, latest.date, true);
 }
 
-// Costos de Lima: FOB Desaguadero / FCA SCZ (Montero), same card pattern
+// Venta de soja — mercado de Lima: FOB Desaguadero / FCA SCZ (Montero), same card pattern
 // as Rosario, read from its own sheet (costos.venta_soja_lima), including
 // its own Costo de G industrial / INDUSTRIAL-GRANOS decision.
 function renderCostosLima(all){
