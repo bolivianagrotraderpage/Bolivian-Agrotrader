@@ -926,6 +926,18 @@
           "solvente": 200.55,
           "grano": 294.27
         }
+      },
+      "venta_soja_lima": {
+        "fob_desaguadero": {
+          "aceite": 1608.109,
+          "solvente": 394.036,
+          "grano": 487.603
+        },
+        "fca_scz_montero": {
+          "aceite": 1558.109,
+          "solvente": 344.036,
+          "grano": 437.603
+        }
       }
     }
   },
