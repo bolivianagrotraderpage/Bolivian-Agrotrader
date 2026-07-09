@@ -79,7 +79,8 @@ COLUMN_MAP = {
 DATE_COLUMN = "Fecha"
 
 # --- "Hoja de costos Rosario" (per-product FOB / FCA values) ---
-# Row-label (normalized) -> key in costos.venta_soja_rosario
+# Row-label (normalized) -> key in costos.venta_soja_rosario.
+# These rows have one value per product column (Aceite/Solvente/Grano).
 COSTOS_PRODUCTO_ROW_LABELS = {
     "fob pto aguirre": "fob_pto_aguirre",
     "fca scz (montero)": "fca_scz_montero",
@@ -90,6 +91,15 @@ COSTOS_PRODUCTO_COLUMNS = {
     "aceite": "aceite",
     "solvente": "solvente",
     "grano": "grano",
+}
+
+# Rows that hold a single value (not split across Aceite/Solvente/Grano
+# columns) - e.g. "Precio del grano procesado FCA SCZ para Rosario", which
+# is the reference cost subtracted from the FCA Grano value to decide
+# INDUSTRIAL vs GRANOS on the webpage (comparison done in JS, not here).
+# Only applies to the FCA SCZ (Montero) stage, not FOB Pto Aguirre.
+COSTOS_SCALAR_ROW_LABELS = {
+    "precio del grano procesado fca scz para rosario": "costo_g_industrial",
 }
 
 
@@ -155,11 +165,30 @@ def parse_costos_sheet_csv(csv_text: str) -> dict:
     """Parses a per-product cost sheet (Aceite/Solvente/Grano columns):
     finds the header row with the product columns, then pulls the target
     rows (FOB Pto Aguirre, FCA SCZ Montero) by label, regardless of exact
-    row/column position. Values are read as-is; nothing is computed here.
-    Shared across all COSTOS_SHEETS entries - they're expected to follow
-    the same "Hoja de costos" layout."""
+    row/column position. Also scans the whole sheet for scalar rows
+    (COSTOS_SCALAR_ROW_LABELS), which live outside that table and hold a
+    single value rather than one per product. Values are read as-is;
+    nothing is computed here. Shared across all COSTOS_SHEETS entries -
+    they're expected to follow the same "Hoja de costos" layout."""
     rows = list(csv.reader(StringIO(csv_text)))
+    result = {}
 
+    # --- scalar rows (single value, anywhere in the sheet) ---
+    for row in rows:
+        if not row:
+            continue
+        for j, cell in enumerate(row):
+            norm = _normalize(cell)
+            if norm in COSTOS_SCALAR_ROW_LABELS:
+                key = COSTOS_SCALAR_ROW_LABELS[norm]
+                for later_cell in row[j + 1:]:
+                    val = to_float(later_cell)
+                    if val is not None:
+                        result[key] = val
+                        break
+                break
+
+    # --- per-product table (Aceite / Solvente / Grano columns) ---
     col_index_by_product = {}
     header_row_idx = None
     for i, row in enumerate(rows):
@@ -172,11 +201,10 @@ def parse_costos_sheet_csv(csv_text: str) -> dict:
             break
 
     if header_row_idx is None or not col_index_by_product:
-        return {}
+        return result
 
     label_col_limit = min(col_index_by_product.values())
 
-    result = {}
     for row in rows[header_row_idx:]:
         if not row:
             continue
