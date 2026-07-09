@@ -951,6 +951,11 @@
             "soya_grano": 438.097,
             "harina_solvente": 344.248,
             "aceite": 1561.975
+          },
+          "desaguadero": {
+            "soya_grano": 443.23,
+            "harina_solvente": 337.91,
+            "aceite": 1158.52
           }
         },
         "base": {
@@ -958,6 +963,11 @@
             "soya_grano": 9.363,
             "harina_solvente": -10.848,
             "aceite": -405.27
+          },
+          "desaguadero_chicago": {
+            "soya_grano": 5.13,
+            "harina_solvente": -6.34,
+            "aceite": -403.46
           }
         }
       }
