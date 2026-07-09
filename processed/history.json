@@ -928,16 +928,16 @@
         }
       },
       "venta_soja_lima": {
-        "costo_g_industrial": 363.0,
+        "costo_g_industrial": 352.56,
         "fob_desaguadero": {
-          "aceite": 1144.65,
-          "solvente": 327.69,
-          "grano": 432.73
+          "aceite": 1107.64,
+          "solvente": 322.83,
+          "grano": 409.49
         },
         "fca_scz_montero": {
-          "aceite": 1094.65,
-          "solvente": 277.69,
-          "grano": 382.73
+          "aceite": 1057.64,
+          "solvente": 272.83,
+          "grano": 359.49
         }
       },
       "mercado_exterior": {
@@ -953,9 +953,9 @@
             "aceite": 1561.975
           },
           "desaguadero": {
-            "soya_grano": 443.23,
-            "harina_solvente": 337.91,
-            "aceite": 1158.52
+            "soya_grano": 419.98,
+            "harina_solvente": 333.04,
+            "aceite": 1121.51
           }
         },
         "base": {
@@ -965,9 +965,9 @@
             "aceite": -405.27
           },
           "desaguadero_chicago": {
-            "soya_grano": 5.13,
-            "harina_solvente": -6.34,
-            "aceite": -403.46
+            "soya_grano": -18.12,
+            "harina_solvente": -11.21,
+            "aceite": -440.46
           }
         }
       }
