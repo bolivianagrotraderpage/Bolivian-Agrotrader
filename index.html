@@ -119,39 +119,54 @@
     border-radius:var(--radius);
   }
 
-  /* Costos stat tiles (card-grid style) */
-  .stat-grid{
+  /* FOB / FCA product cards (Hoja de costos Rosario) — based on the
+     provided sketch: a two-line label block on top, divided from a big
+     number below, restyled to match the page's dark theme. */
+  .fob-grid{
     display:flex;
     flex-wrap:wrap;
     gap:14px;
     margin-bottom:24px;
   }
-  .stat-tile{
-    flex:1 1 190px;
+  .fob-card{
+    flex:1 1 150px;
     background:var(--bg-panel);
     border:1px solid var(--line);
-    border-top:3px solid var(--tile-color, var(--costos));
     border-radius:var(--radius);
-    padding:18px 20px 16px;
+    overflow:hidden;
   }
-  .stat-tile .tile-label{
-    font-size:10.5px;
+  .fob-card .fob-card-header{
+    padding:12px 16px;
+    border-bottom:1px solid var(--line);
+    background:rgba(0,0,0,0.15);
+  }
+  .fob-card .fob-card-header .l1{
+    font-size:10px;
     text-transform:uppercase;
-    letter-spacing:0.09em;
-    color:var(--tile-color, var(--text-dim));
-    margin-bottom:12px;
+    letter-spacing:0.08em;
+    color:var(--card-color, var(--costos));
   }
-  .stat-tile .tile-value{
+  .fob-card .fob-card-header .l2{
     font-family:'Fraunces', serif;
-    font-size:28px;
+    font-size:15px;
+    color:var(--text);
+    margin-top:2px;
+  }
+  .fob-card .fob-card-body{
+    padding:16px;
+    text-align:center;
+  }
+  .fob-card .fob-card-body .value{
+    font-family:'Fraunces', serif;
+    font-size:26px;
     font-weight:500;
     color:var(--text);
     line-height:1;
   }
-  .stat-tile .tile-sub{
-    font-size:11px;
+  .fob-card .fob-card-body .unit{
+    font-size:10.5px;
     color:var(--text-dim);
-    margin-top:8px;
+    margin-top:6px;
   }
 
   /* section divider between Costos and the price charts below */
@@ -207,22 +222,29 @@
 <header>
   <div class="eyebrow">Reporte de mercado · actualizado periódicamente</div>
   <h1>Precios agropecuarios — Bolivia</h1>
-  <p>Costos logísticos · maíz, sorgo y harinas · complejo soya FOB · fletes Lima / Arica</p>
+  <p>Costos de venta · maíz, sorgo y harinas · complejo soya FOB · fletes Lima / Arica</p>
 </header>
 
 <main>
 
   <section id="costos-section">
     <span class="group-label costos">Costos</span>
-    <h2>Costo logístico — Pto Aguirre · Rosario · Callao</h2>
-    <div class="sub">Tren SCZ–Aguirre + uso de puertos + barcaza + barco + transporte final</div>
+    <h2>Venta de soja — mercado Rosario</h2>
+    <div class="sub">FOB Pto Aguirre y FCA SCZ (Montero) por producto</div>
 
-    <div id="costosStatGrid" class="stat-grid"></div>
-    <div id="costosStatEmpty" class="empty-state">Aún no hay datos de costos. Agregue un registro con el formulario abajo.</div>
+    <div id="fobGrid" class="fob-grid"></div>
+    <div id="fobEmpty" class="empty-state">Aún no hay datos de FOB / FCA. Se toman de la hoja de costos Rosario.</div>
 
-    <div class="chart-panel">
-      <canvas id="costosChart"></canvas>
-      <div id="costosEmpty" class="empty-state">Aún no hay historial suficiente para graficar la tendencia.</div>
+    <div class="chart-panel" id="fobFobPanel">
+      <div class="sub" style="margin-bottom:12px;">Tendencia — FOB Pto Aguirre</div>
+      <canvas id="fobFobChart"></canvas>
+      <div id="fobFobEmpty" class="empty-state">Aún no hay historial suficiente para graficar la tendencia.</div>
+    </div>
+
+    <div class="chart-panel" id="fobFcaPanel">
+      <div class="sub" style="margin-bottom:12px;">Tendencia — FCA SCZ (Montero)</div>
+      <canvas id="fobFcaChart"></canvas>
+      <div id="fobFcaEmpty" class="empty-state">Aún no hay historial suficiente para graficar la tendencia.</div>
     </div>
   </section>
 
@@ -300,18 +322,17 @@ const FREIGHT_ROUTES = [
   {key:'lima', label:'Lima'},
   {key:'arica', label:'Arica'},
 ];
-const COSTOS_COMPONENTS = [
-  {key:'tren_scz_pto_aguirre', label:'Tren SCZ–Pto Aguirre'},
-  {key:'uso_pto_aguirre', label:'Uso Pto Aguirre'},
-  {key:'uso_pto_rosario', label:'Uso Pto Rosario'},
-  {key:'barcaza_pto_aguirre_rosario', label:'Barcaza Aguirre–Rosario'},
-  {key:'barco_rosario_callao', label:'Barco Rosario–Callao'},
-  {key:'uso_pto_callao', label:'Uso Pto Callao'},
-  {key:'transporte_callao_destino_final', label:'Transporte Callao–destino'},
+
+// "Hoja de costos Rosario" — per-product FOB / FCA cards
+const VENTA_SOJA_METRICS = [
+  {key:'fob_pto_aguirre', label:'FOB Pto Aguirre'},
+  {key:'fca_scz_montero', label:'FCA SCZ (Montero)'},
 ];
-// Cycled across the stat tiles so each card reads distinctly, same as the
-// accent colors already used for group labels elsewhere on the page.
-const TILE_COLORS = ['var(--costos)', 'var(--grain)', 'var(--freight)', 'var(--soy)'];
+const VENTA_SOJA_PRODUCTS = [
+  {key:'aceite', label:'Aceite', color:'var(--grain)'},
+  {key:'solvente', label:'Solvente', color:'var(--freight)'},
+  {key:'grano', label:'Grano', color:'var(--soy)'},
+];
 
 // ---- charts -----------------------------------------------------------
 async function loadHistory(){
@@ -322,7 +343,7 @@ async function loadHistory(){
   } catch { return []; }
 }
 
-let grainsChart, soyChart, freightChart, costosChart;
+let grainsChart, soyChart, freightChart, fobFobChart, fobFcaChart;
 
 function lineDataset(label, color, points){
   return {
@@ -350,7 +371,7 @@ async function renderAllCharts(){
   const all = history.slice().sort((a,b) => a.date.localeCompare(b.date));
   const labels = all.map(s => s.date);
 
-  renderCostos(all, labels);
+  renderVentaSoja(all);
   renderGrains(all, labels);
   renderSoy(all, labels);
   renderFreight(all, labels);
@@ -457,59 +478,88 @@ function renderFreight(all, labels){
   renderFilterChips('freightFilters', () => freightChart, datasets);
 }
 
-function buildStatTile(label, value, sub, color){
-  const tile = document.createElement('div');
-  tile.className = 'stat-tile';
-  tile.style.setProperty('--tile-color', color);
-  tile.innerHTML = `
-    <div class="tile-label">${label}</div>
-    <div class="tile-value">${value}</div>
-    <div class="tile-sub">${sub}</div>
+function buildFobCard(l1, l2, value, unit, color){
+  const card = document.createElement('div');
+  card.className = 'fob-card';
+  card.style.setProperty('--card-color', color);
+  card.innerHTML = `
+    <div class="fob-card-header">
+      <div class="l1">${l1}</div>
+      <div class="l2">${l2}</div>
+    </div>
+    <div class="fob-card-body">
+      <div class="value">${value}</div>
+      <div class="unit">${unit}</div>
+    </div>
   `;
-  return tile;
+  return card;
 }
 
-// Costos: today's total + each component as its own stat tile (card-grid
-// style), plus a historical trend line for the total underneath.
-// "Today" = most recent snapshot in history.json that carries a costos total.
-function renderCostos(all, labels){
-  const withCostos = all.filter(s => s.costos && s.costos.logistica_pto_aguirre_rosario_callao);
-  const hasData = withCostos.length > 0;
+// Costos: FOB Pto Aguirre / FCA SCZ (Montero) per product, read as-is from
+// the "Hoja de costos Rosario" sheet (nothing computed in JS or Python).
+// Cards show the latest snapshot; two small trend charts below show the
+// history of each metric across products.
+function renderVentaSoja(all){
+  const withData = all.filter(s => s.costos && s.costos.venta_soja_rosario);
+  const hasData = withData.length > 0;
 
-  const grid = document.getElementById('costosStatGrid');
+  const grid = document.getElementById('fobGrid');
   grid.innerHTML = '';
-  toggleEmpty('costosStatEmpty', hasData);
+  toggleEmpty('fobEmpty', hasData);
 
   if (hasData) {
-    const latest = withCostos[withCostos.length - 1];
-    const logi = latest.costos.logistica_pto_aguirre_rosario_callao;
-    let colorIdx = 0;
-    const nextColor = () => TILE_COLORS[(colorIdx++) % TILE_COLORS.length];
+    const latest = withData[withData.length - 1];
+    const venta = latest.costos.venta_soja_rosario;
 
-    grid.appendChild(buildStatTile(
-      'Total logístico', logi.total.toFixed(2), `USD · ${latest.date}`, nextColor()
-    ));
-
-    COSTOS_COMPONENTS.forEach(c => {
-      const val = logi.components ? logi.components[c.key] : undefined;
-      if (val === undefined) return;
-      grid.appendChild(buildStatTile(c.label, val.toFixed(2), `USD · ${latest.date}`, nextColor()));
+    VENTA_SOJA_METRICS.forEach(metric => {
+      const values = venta[metric.key];
+      if (!values) return;
+      VENTA_SOJA_PRODUCTS.forEach(p => {
+        const val = values[p.key];
+        if (val === undefined) return;
+        grid.appendChild(buildFobCard(
+          metric.label, p.label, val.toFixed(2), `USD/tm · ${latest.date}`, p.color
+        ));
+      });
     });
   }
 
-  const hasHistory = withCostos.length > 1;
-  document.getElementById('costosChart').style.display = hasHistory ? 'block' : 'none';
-  toggleEmpty('costosEmpty', hasHistory);
+  renderVentaSojaTrend(withData, 'fob_pto_aguirre', 'fobFobChart', 'fobFobEmpty', 'fobFobPanel', (c) => fobFobChart = c, () => fobFobChart);
+  renderVentaSojaTrend(withData, 'fca_scz_montero', 'fobFcaChart', 'fobFcaEmpty', 'fobFcaPanel', (c) => fobFcaChart = c, () => fobFcaChart);
+}
+
+function renderVentaSojaTrend(withData, metricKey, canvasId, emptyId, panelId, setChart, getChart){
+  const points = withData.filter(s => s.costos.venta_soja_rosario[metricKey]);
+  const hasHistory = points.length > 1;
+
+  document.getElementById(panelId).style.display = withData.length ? 'block' : 'none';
+  document.getElementById(canvasId).style.display = hasHistory ? 'block' : 'none';
+  toggleEmpty(emptyId, hasHistory);
   if (!hasHistory) return;
 
-  const costosLabels = withCostos.map(s => s.date);
-  const points = withCostos.map(s => s.costos.logistica_pto_aguirre_rosario_callao.total);
-  if (costosChart) costosChart.destroy();
-  costosChart = new Chart(document.getElementById('costosChart'), {
+  const trendLabels = points.map(s => s.date);
+  const datasets = VENTA_SOJA_PRODUCTS.map(p => {
+    const series = points.map(s => {
+      const v = s.costos.venta_soja_rosario[metricKey][p.key];
+      return v !== undefined ? v : null;
+    });
+    return lineDataset(p.label, getComputedColor(p.color), series);
+  });
+
+  const existing = getChart();
+  if (existing) existing.destroy();
+  const chart = new Chart(document.getElementById(canvasId), {
     type: 'line',
-    data: { labels: costosLabels, datasets: [lineDataset('Costo logístico total (USD)', '#C97A6B', points)] },
+    data: { labels: trendLabels, datasets },
     options: baseOptions(),
   });
+  setChart(chart);
+}
+
+function getComputedColor(cssVar){
+  const match = cssVar.match(/var\((--[a-z-]+)\)/);
+  if (!match) return cssVar;
+  return getComputedStyle(document.documentElement).getPropertyValue(match[1]).trim();
 }
 
 // ---- init ---------------------------------------------------------------
