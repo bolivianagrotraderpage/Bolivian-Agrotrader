@@ -40,11 +40,17 @@ FORM_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRHWIio7FAVHaT8B
 # costos.<key> -> published CSV URL for that route/sheet.
 # Add more route sheets here as they're published
 # (e.g. "venta_soja_callao": "https://...pub?gid=...&single=true&output=csv").
+# Most sheets follow the "Aceite/Solvente/Grano columns + labeled rows"
+# layout, parsed by parse_costos_sheet_csv. "mercado_exterior" is a
+# different layout (see parse_mercado_exterior_csv) - which parser runs
+# for which key is set in COSTOS_SHEET_PARSERS below.
 COSTOS_SHEETS = {
     # tab: "HC Rosario"
     "venta_soja_rosario": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ39PJM93JRVCt38Ryr_xBQbiDNEGzreH5ydhtmVF3w3ZI3oVHLZBiFtyKmmd3pPHhK4mAOVkW1tvti/pub?gid=62916827&single=true&output=csv",
     # tab: "HC Lima" - paste the real published CSV link once you have it.
-    "venta_soja_lima": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ39PJM93JRVCt38Ryr_xBQbiDNEGzreH5ydhtmVF3w3ZI3oVHLZBiFtyKmmd3pPHhK4mAOVkW1tvti/pub?gid=1317820090&single=true&output=csv",
+    "venta_soja_lima": "PASTE_HOJA_DE_COSTOS_LIMA_CSV_URL_HERE",
+    # tab: "MercadoExterior" - paste the real published CSV link once you have it.
+    "mercado_exterior": "PASTE_MERCADO_EXTERIOR_CSV_URL_HERE",
 }
 
 # Google Form question titles -> (group, product, region)
@@ -117,6 +123,7 @@ COSTOS_SCALAR_ROW_LABELS = {
 COSTOS_SHEET_EXPECTED_KEYS = {
     "venta_soja_rosario": {"fob_pto_aguirre", "fca_scz_montero", "costo_g_industrial"},
     "venta_soja_lima": {"fob_desaguadero", "fca_scz_montero", "costo_g_industrial"},
+    "mercado_exterior": {"precios", "base"},
 }
 
 
@@ -254,6 +261,127 @@ def parse_costos_sheet_csv(csv_text: str) -> dict:
     return result
 
 
+# --- "Mercado Exterior" sheet: two small tables with an inverted layout
+# compared to the FOB/FCA sheets (see parse_mercado_exterior_csv). ---
+# Table 1: markets are columns, products are rows.
+MERCADO_EXTERIOR_MARKETS = {
+    "rosario": "rosario",
+    "chicago": "chicago",
+    "lima": "lima",
+}
+# Table 2: products are columns, "Base X - Chicago" rows are the base type.
+MERCADO_EXTERIOR_PRODUCTS = {
+    "soya grano": "soya_grano",
+    "harina solvente": "harina_solvente",
+    "aceite": "aceite",
+}
+MERCADO_EXTERIOR_BASE_ROWS = {
+    "base rosario - chicago": "rosario_chicago",
+    "base rosario chicago": "rosario_chicago",
+    "base lima - chicago": "lima_chicago",
+    "base lima chicago": "lima_chicago",
+}
+
+
+def parse_mercado_exterior_csv(csv_text: str) -> dict:
+    """Parses the 'Mercado Exterior' sheet, which has two small tables
+    stacked vertically with an inverted layout relative to the FOB/FCA
+    sheets:
+      - Table 1: header row is markets (Rosario/Chicago/Lima), each
+        following row is a product (Soya grano/Harina Solvente/Aceite).
+        -> result["precios"][market][product] = value
+      - Table 2: header row is products, each following row is a base
+        type ("Base Rosario - Chicago", "Base Lima - Chicago").
+        -> result["base"][base_type][product] = value
+    Values are read as-is; nothing is computed here."""
+    rows = list(csv.reader(StringIO(csv_text)))
+    precios: dict = {}
+    base: dict = {}
+
+    # --- Table 1: markets as columns, products as rows ---
+    market_cols = {}
+    header1_idx = None
+    for i, row in enumerate(rows):
+        cols_found = {}
+        for j, cell in enumerate(row):
+            norm = _normalize(cell)
+            if norm in MERCADO_EXTERIOR_MARKETS:
+                cols_found[MERCADO_EXTERIOR_MARKETS[norm]] = j
+        if len(cols_found) >= 2:
+            market_cols = cols_found
+            header1_idx = i
+            break
+
+    if header1_idx is not None:
+        for row in rows[header1_idx + 1:]:
+            if not row or all(not c.strip() for c in row):
+                break  # blank row ends table 1
+            product_key = None
+            for cell in row:
+                norm = _normalize(cell)
+                if norm in MERCADO_EXTERIOR_PRODUCTS:
+                    product_key = MERCADO_EXTERIOR_PRODUCTS[norm]
+                    break
+            if not product_key:
+                continue
+            for market_key, col_idx in market_cols.items():
+                if col_idx < len(row):
+                    val = to_float(row[col_idx])
+                    if val is not None:
+                        precios.setdefault(market_key, {})[product_key] = val
+
+    # --- Table 2: products as columns, base-type as rows ---
+    product_cols = {}
+    header2_idx = None
+    start = (header1_idx + 1) if header1_idx is not None else 0
+    for i in range(start, len(rows)):
+        row = rows[i]
+        cols_found = {}
+        for j, cell in enumerate(row):
+            norm = _normalize(cell)
+            if norm in MERCADO_EXTERIOR_PRODUCTS:
+                cols_found[MERCADO_EXTERIOR_PRODUCTS[norm]] = j
+        if len(cols_found) >= 2:
+            product_cols = cols_found
+            header2_idx = i
+            break
+
+    if header2_idx is not None:
+        for row in rows[header2_idx + 1:]:
+            if not row:
+                continue
+            base_key = None
+            for cell in row:
+                norm = _normalize(cell)
+                for phrase, key in MERCADO_EXTERIOR_BASE_ROWS.items():
+                    if phrase in norm:
+                        base_key = key
+                        break
+                if base_key:
+                    break
+            if not base_key:
+                continue
+            for product_key, col_idx in product_cols.items():
+                if col_idx < len(row):
+                    val = to_float(row[col_idx])
+                    if val is not None:
+                        base.setdefault(base_key, {})[product_key] = val
+
+    result = {}
+    if precios:
+        result["precios"] = precios
+    if base:
+        result["base"] = base
+    return result
+
+
+# Which parser handles which COSTOS_SHEETS entry. Anything not listed
+# falls back to parse_costos_sheet_csv (the Aceite/Solvente/Grano layout).
+COSTOS_SHEET_PARSERS = {
+    "mercado_exterior": parse_mercado_exterior_csv,
+}
+
+
 def _print_label_hints(csv_text: str, missing_keys: set) -> None:
     """When an expected row wasn't matched, scan the sheet for label cells
     that share key words with what we're looking for (e.g. 'grano',
@@ -305,8 +433,9 @@ def main():
     if not by_date:
         sys.exit("ERROR: No valid dated rows found in the Form sheet. Aborting without writing.")
 
-    # Cost sheets: today's per-product FOB / FCA values, read as-is from
-    # each already-computed sheet. Rosario today; more routes later.
+    # Cost sheets: today's per-product FOB / FCA values (and Mercado
+    # Exterior prices/bases), read as-is from each already-computed
+    # sheet.
     today_costos = {}
     for costos_key, url in COSTOS_SHEETS.items():
         csv_text = fetch_csv(url)
@@ -315,25 +444,25 @@ def main():
             continue
 
         row_count = len(csv_text.strip().splitlines())
-        parsed = parse_costos_sheet_csv(csv_text)
+        parser = COSTOS_SHEET_PARSERS.get(costos_key, parse_costos_sheet_csv)
+        parsed = parser(csv_text)
 
         if parsed:
             today_costos[costos_key] = parsed
             found_rows = ", ".join(parsed.keys())
             print(f"[costos] '{costos_key}': fetched {row_count} CSV line(s), matched rows: {found_rows}")
 
-            all_known_keys = set(COSTOS_PRODUCTO_ROW_LABELS.values()) | set(COSTOS_SCALAR_ROW_LABELS.values())
-            expected_keys = COSTOS_SHEET_EXPECTED_KEYS.get(costos_key, all_known_keys)
-            missing_keys = expected_keys - set(parsed.keys())
-            if missing_keys:
-                print(f"[costos] '{costos_key}': WARNING - expected but missing: {', '.join(sorted(missing_keys))}")
-                _print_label_hints(csv_text, missing_keys)
+            if costos_key in COSTOS_SHEET_EXPECTED_KEYS:
+                expected_keys = COSTOS_SHEET_EXPECTED_KEYS[costos_key]
+                missing_keys = expected_keys - set(parsed.keys())
+                if missing_keys:
+                    print(f"[costos] '{costos_key}': WARNING - expected but missing: {', '.join(sorted(missing_keys))}")
+                    _print_label_hints(csv_text, missing_keys)
         else:
             print(
                 f"[costos] '{costos_key}': fetched {row_count} CSV line(s) but found NO matching data. "
-                "Check that the published link points at the right tab, and that row labels match "
-                "COSTOS_PRODUCTO_ROW_LABELS / column headers match COSTOS_PRODUCTO_COLUMNS. "
-                f"First 3 lines of what was fetched:\n" + "\n".join(csv_text.strip().splitlines()[:3])
+                "Check that the published link points at the right tab and that row/column labels match."
+                f"\nFirst 3 lines of what was fetched:\n" + "\n".join(csv_text.strip().splitlines()[:3])
             )
 
     if today_costos:
