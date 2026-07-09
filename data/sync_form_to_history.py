@@ -39,9 +39,10 @@ FORM_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRHWIio7FAVHaT8B
 
 # costos.<key> -> published CSV URL for that route/sheet.
 # "rosario" is the MVP; add more route sheets here as they're published
-# (e.g. "venta_soja_callao": "https://...pub?output=csv").
+# (e.g. "venta_soja_callao": "https://...pub?gid=...&single=true&output=csv").
 COSTOS_SHEETS = {
-    "venta_soja_rosario": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ39PJM93JRVCt38Ryr_xBQbiDNEGzreH5ydhtmVF3w3ZI3oVHLZBiFtyKmmd3pPHhK4mAOVkW1tvti/pub?output=csv",
+    # tab: "HC Rosario"
+    "venta_soja_rosario": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ39PJM93JRVCt38Ryr_xBQbiDNEGzreH5ydhtmVF3w3ZI3oVHLZBiFtyKmmd3pPHhK4mAOVkW1tvti/pub?gid=62916827&single=true&output=csv",
 }
 
 # Google Form question titles -> (group, product, region)
@@ -226,10 +227,23 @@ def main():
     for costos_key, url in COSTOS_SHEETS.items():
         csv_text = fetch_csv(url)
         if csv_text is None:
+            print(f"[costos] '{costos_key}': URL not set, skipping.")
             continue
+
+        row_count = len(csv_text.strip().splitlines())
         parsed = parse_costos_sheet_csv(csv_text)
+
         if parsed:
             today_costos[costos_key] = parsed
+            found_rows = ", ".join(parsed.keys())
+            print(f"[costos] '{costos_key}': fetched {row_count} CSV line(s), matched rows: {found_rows}")
+        else:
+            print(
+                f"[costos] '{costos_key}': fetched {row_count} CSV line(s) but found NO matching data. "
+                "Check that the published link points at the right tab, and that row labels match "
+                "COSTOS_PRODUCTO_ROW_LABELS / column headers match COSTOS_PRODUCTO_COLUMNS. "
+                f"First 3 lines of what was fetched:\n" + "\n".join(csv_text.strip().splitlines()[:3])
+            )
 
     if today_costos:
         today = date.today().isoformat()
