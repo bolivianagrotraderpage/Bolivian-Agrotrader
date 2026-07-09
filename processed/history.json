@@ -928,6 +928,7 @@
         }
       },
       "venta_soja_lima": {
+        "costo_g_industrial": 497.84,
         "fob_desaguadero": {
           "aceite": 1608.109,
           "solvente": 394.036,
