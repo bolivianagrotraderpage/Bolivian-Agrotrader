@@ -48,9 +48,9 @@ COSTOS_SHEETS = {
     # tab: "HC Rosario"
     "venta_soja_rosario": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ39PJM93JRVCt38Ryr_xBQbiDNEGzreH5ydhtmVF3w3ZI3oVHLZBiFtyKmmd3pPHhK4mAOVkW1tvti/pub?gid=62916827&single=true&output=csv",
     # tab: "HC Lima" - paste the real published CSV link once you have it.
-    "venta_soja_lima": "PASTE_HOJA_DE_COSTOS_LIMA_CSV_URL_HERE",
+    "venta_soja_lima": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ39PJM93JRVCt38Ryr_xBQbiDNEGzreH5ydhtmVF3w3ZI3oVHLZBiFtyKmmd3pPHhK4mAOVkW1tvti/pub?gid=1317820090&single=true&output=csv",
     # tab: "MercadoExterior" - paste the real published CSV link once you have it.
-    "mercado_exterior": "PASTE_MERCADO_EXTERIOR_CSV_URL_HERE",
+    "mercado_exterior": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ39PJM93JRVCt38Ryr_xBQbiDNEGzreH5ydhtmVF3w3ZI3oVHLZBiFtyKmmd3pPHhK4mAOVkW1tvti/pub?gid=1352820681&single=true&output=csv",
 }
 
 # Google Form question titles -> (group, product, region)
