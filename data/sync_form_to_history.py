@@ -47,9 +47,9 @@ FORM_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRHWIio7FAVHaT8B
 COSTOS_SHEETS = {
     # tab: "HC Rosario"
     "venta_soja_rosario": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ39PJM93JRVCt38Ryr_xBQbiDNEGzreH5ydhtmVF3w3ZI3oVHLZBiFtyKmmd3pPHhK4mAOVkW1tvti/pub?gid=62916827&single=true&output=csv",
-    # tab: "HC Lima" - paste the real published CSV link once you have it.
+    # tab: "HC Lima"
     "venta_soja_lima": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ39PJM93JRVCt38Ryr_xBQbiDNEGzreH5ydhtmVF3w3ZI3oVHLZBiFtyKmmd3pPHhK4mAOVkW1tvti/pub?gid=1317820090&single=true&output=csv",
-    # tab: "MercadoExterior" - paste the real published CSV link once you have it.
+    # tab: "MercadoExterior"
     "mercado_exterior": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ39PJM93JRVCt38Ryr_xBQbiDNEGzreH5ydhtmVF3w3ZI3oVHLZBiFtyKmmd3pPHhK4mAOVkW1tvti/pub?gid=1352820681&single=true&output=csv",
 }
 
@@ -263,11 +263,14 @@ def parse_costos_sheet_csv(csv_text: str) -> dict:
 
 # --- "Mercado Exterior" sheet: two small tables with an inverted layout
 # compared to the FOB/FCA sheets (see parse_mercado_exterior_csv). ---
-# Table 1: markets are columns, products are rows.
+# Table 1: markets are columns, products are rows. The third market column
+# was renamed Lima -> Desaguadero in the sheet; both map to the same
+# "desaguadero" key so either wording still works.
 MERCADO_EXTERIOR_MARKETS = {
     "rosario": "rosario",
     "chicago": "chicago",
-    "lima": "lima",
+    "desaguadero": "desaguadero",
+    "lima": "desaguadero",
 }
 # Table 2: products are columns, "Base X - Chicago" rows are the base type.
 MERCADO_EXTERIOR_PRODUCTS = {
@@ -278,8 +281,10 @@ MERCADO_EXTERIOR_PRODUCTS = {
 MERCADO_EXTERIOR_BASE_ROWS = {
     "base rosario - chicago": "rosario_chicago",
     "base rosario chicago": "rosario_chicago",
-    "base lima - chicago": "lima_chicago",
-    "base lima chicago": "lima_chicago",
+    "base desaguadero - chicago": "desaguadero_chicago",
+    "base desaguadero chicago": "desaguadero_chicago",
+    "base lima - chicago": "desaguadero_chicago",
+    "base lima chicago": "desaguadero_chicago",
 }
 
 
