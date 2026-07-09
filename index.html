@@ -168,6 +168,24 @@
     grid-template-columns:repeat(3, 1fr);
     gap:14px;
   }
+  /* column-stacked layout for Mercado Exterior: N columns, each holding
+     its own vertical stack of square cards (unlike fob-section-grid,
+     which fills left-to-right row by row). */
+  .stack-grid{
+    display:flex;
+    gap:14px;
+    margin-bottom:24px;
+  }
+  .stack-column{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  @media (max-width:640px){
+    .stack-grid{flex-wrap:wrap;}
+    .stack-column{flex:1 1 45%;}
+  }
   .fob-card{
     background:var(--bg-panel);
     border:1px solid var(--line);
@@ -291,6 +309,17 @@
 
   <section id="costos-section">
     <span class="group-label costos">Precios de mercado</span>
+
+    <h2 class="market-title">Mercado Exterior</h2>
+    <div class="sub market-title">Soya grano, Harina Solvente y Aceite — Rosario / Chicago / Lima, y bases vs. Chicago</div>
+
+    <div id="mercadoExtPreciosGrid" class="stack-grid"></div>
+
+    <div class="subtle-divider"></div>
+
+    <div id="mercadoExtBaseGrid" class="stack-grid"></div>
+
+    <div id="mercadoExtEmpty" class="empty-state">Aún no hay datos de Mercado Exterior. Se toman de la hoja Mercado Exterior.</div>
 
     <div class="double-line-divider"></div>
     <h2 class="market-title">Venta de soja — mercado Rosario</h2>
@@ -457,6 +486,7 @@ async function renderAllCharts(){
   const all = history.slice().sort((a,b) => a.date.localeCompare(b.date));
   const labels = all.map(s => s.date);
 
+  renderMercadoExterior(all);
   renderVentaSoja(all);
   renderCostosLima(all);
   renderGrains(all, labels);
@@ -563,6 +593,85 @@ function renderFreight(all, labels){
   if (freightChart) freightChart.destroy();
   freightChart = new Chart(document.getElementById('freightChart'), { type:'line', data:{labels, datasets}, options: baseOptions() });
   renderFilterChips('freightFilters', () => freightChart, datasets);
+}
+
+const MERCADO_EXT_MARKETS = [
+  {key:'rosario', label:'Rosario', color:'var(--costos)'},
+  {key:'chicago', label:'Chicago', color:'var(--freight)'},
+  {key:'lima', label:'Lima', color:'var(--grain)'},
+];
+const MERCADO_EXT_PRODUCTS = [
+  {key:'soya_grano', label:'Soya grano'},
+  {key:'harina_solvente', label:'Harina Solvente'},
+  {key:'aceite', label:'Aceite'},
+];
+const MERCADO_EXT_BASES = [
+  {key:'rosario_chicago', label:'Base Rosario − Chicago', color:'var(--costos)'},
+  {key:'lima_chicago', label:'Base Lima − Chicago', color:'var(--grain)'},
+];
+
+// Mercado Exterior: two column-stacked grids read as-is from the
+// "MercadoExterior" sheet — no computation, just display.
+// Grid 1: one column per market (Rosario/Chicago/Lima), each holding its
+// 3 product prices stacked vertically.
+// Grid 2: one column per product, each holding its 2 base values
+// (Rosario-Chicago, Lima-Chicago) stacked vertically.
+function renderMercadoExterior(all){
+  const withData = all.filter(s => s.costos && s.costos.mercado_exterior);
+  const hasData = withData.length > 0;
+  toggleEmpty('mercadoExtEmpty', hasData);
+
+  const preciosGrid = document.getElementById('mercadoExtPreciosGrid');
+  const baseGrid = document.getElementById('mercadoExtBaseGrid');
+  preciosGrid.innerHTML = '';
+  baseGrid.innerHTML = '';
+  if (!hasData) return;
+
+  const latest = withData[withData.length - 1];
+  const mx = latest.costos.mercado_exterior;
+
+  const precios = mx.precios || {};
+  MERCADO_EXT_MARKETS.forEach(market => {
+    const column = document.createElement('div');
+    column.className = 'stack-column';
+    const label = document.createElement('div');
+    label.className = 'fob-subsection-label';
+    label.textContent = market.label;
+    column.appendChild(label);
+
+    const values = precios[market.key] || {};
+    MERCADO_EXT_PRODUCTS.forEach(p => {
+      const val = values[p.key];
+      column.appendChild(buildFobCard(
+        p.label, market.label,
+        val !== undefined ? val.toFixed(2) : '—',
+        val !== undefined ? `USD/tm · ${latest.date}` : 'sin dato',
+        market.color
+      ));
+    });
+    preciosGrid.appendChild(column);
+  });
+
+  const base = mx.base || {};
+  MERCADO_EXT_PRODUCTS.forEach(p => {
+    const column = document.createElement('div');
+    column.className = 'stack-column';
+    const label = document.createElement('div');
+    label.className = 'fob-subsection-label';
+    label.textContent = p.label;
+    column.appendChild(label);
+
+    MERCADO_EXT_BASES.forEach(b => {
+      const val = base[b.key] ? base[b.key][p.key] : undefined;
+      column.appendChild(buildFobCard(
+        'Base', b.label.replace('Base ', ''),
+        val !== undefined ? val.toFixed(2) : '—',
+        val !== undefined ? `USD/tm · ${latest.date}` : 'sin dato',
+        b.color
+      ));
+    });
+    baseGrid.appendChild(column);
+  });
 }
 
 function buildFobCard(l1, l2, value, unit, color, extraClass){
