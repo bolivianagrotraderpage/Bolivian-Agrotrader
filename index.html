@@ -56,7 +56,7 @@
   header h1{font-size:32px;}
   header p{color:var(--text-dim); margin-top:10px; font-size:13px;}
   main{max-width:1080px; margin:0 auto; padding:0 32px;}
-  section{margin-top:56px;}
+  section{margin-top:0;}
   section:first-of-type{margin-top:40px;}
   section > h2{
     font-size:20px;
@@ -127,9 +127,15 @@
     font-size:18px;
     font-weight:500;
     color:var(--text);
-    margin-top:40px;
-    padding-top:24px;
-    border-top:1px dashed var(--line);
+    margin-top:8px;
+  }
+  /* quiet internal separator — no gradient/glow, just a plain thin line.
+     Used between FOB/FCA within a block, and between Rosario/Lima blocks. */
+  .subtle-divider{
+    height:1px;
+    background:var(--line);
+    opacity:0.7;
+    margin:32px 0;
   }
   .fob-subsection{
     margin-bottom:28px;
@@ -199,27 +205,35 @@
     .fob-card.span-2{grid-column:span 2;}
   }
 
-  /* section divider between Costos and the price charts below */
+  /* dividers between major sections — a gradient line with a small glowing
+     marker in the middle, colored to match the section that follows */
   .section-divider{
-    margin-top:56px;
-    padding-top:32px;
-    border-top:1px solid var(--line);
+    margin:48px 0;
+    height:1px;
+    background:linear-gradient(90deg,
+      transparent 0%,
+      var(--line) 12%,
+      var(--line) 88%,
+      transparent 100%);
     position:relative;
   }
   .section-divider::before{
     content:'';
     position:absolute;
-    top:-1px;
-    left:0;
-    width:64px;
-    height:1px;
-    background:var(--costos);
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    width:9px; height:9px;
+    border-radius:50%;
+    background:var(--divider-color, var(--costos));
+    box-shadow:0 0 0 5px var(--bg), 0 0 14px 1px var(--divider-color, var(--costos));
   }
+  .section-divider.divider-grain{ --divider-color: var(--grain); }
+  .section-divider.divider-soy{ --divider-color: var(--soy); }
+  .section-divider.divider-freight{ --divider-color: var(--freight); }
 
   /* manual entry module */
   #manual-entry{
-    border-top:1px solid var(--line);
-    padding-top:40px;
+    padding-top:8px;
   }
   .entry-card{
     background:var(--bg-panel);
@@ -267,12 +281,16 @@
       <div id="fobGridFob" class="fob-section-grid"></div>
     </div>
 
+    <div class="subtle-divider"></div>
+
     <div class="fob-subsection">
       <div class="fob-subsection-label">FCA SCZ (Montero)</div>
       <div id="fobGridFca" class="fob-section-grid"></div>
     </div>
 
     <div id="fobEmpty" class="empty-state">Aún no hay datos de FOB / FCA. Se toman de la hoja de costos Rosario.</div>
+
+    <div class="subtle-divider lima-subsection"></div>
 
     <div class="lima-subsection">
       <div class="costos-subhead">Costos de Lima</div>
@@ -284,6 +302,8 @@
       <div id="limaGridFob" class="fob-section-grid"></div>
     </div>
 
+    <div class="subtle-divider lima-subsection"></div>
+
     <div class="fob-subsection lima-subsection">
       <div class="fob-subsection-label">FCA SCZ (Montero)</div>
       <div id="limaGridFca" class="fob-section-grid"></div>
@@ -292,7 +312,7 @@
     <div id="limaEmpty" class="empty-state">Aún no hay datos de costos de Lima. Se toman de la hoja de costos Lima.</div>
   </section>
 
-  <div class="section-divider"></div>
+  <div class="section-divider divider-grain"></div>
 
   <section id="grains-section">
     <span class="group-label grain">Granos</span>
@@ -305,6 +325,8 @@
     </div>
   </section>
 
+  <div class="section-divider divider-soy"></div>
+
   <section id="soy-section">
     <span class="group-label soy">Complejo soya</span>
     <h2>Soya, aceite y torta — FOB</h2>
@@ -316,6 +338,8 @@
     </div>
   </section>
 
+  <div class="section-divider divider-freight"></div>
+
   <section id="freight-section">
     <span class="group-label freight">Fletes</span>
     <h2>Lima y Arica</h2>
@@ -325,6 +349,8 @@
       <div id="freightEmpty" class="empty-state">Aún no hay datos. Agregue un registro con el formulario abajo.</div>
     </div>
   </section>
+
+  <div class="section-divider"></div>
 
   <section id="manual-entry">
     <h2>Agregar datos manualmente</h2>
@@ -595,7 +621,7 @@ function renderVentaSoja(all){
   const hasData = withData.length > 0;
   toggleEmpty('fobEmpty', hasData);
 
-  document.querySelectorAll('.fob-subsection:not(.lima-subsection)').forEach(el => el.style.display = hasData ? 'block' : 'none');
+  document.querySelectorAll('.fob-subsection:not(.lima-subsection), .subtle-divider:not(.lima-subsection)').forEach(el => el.style.display = hasData ? 'block' : 'none');
   if (!hasData) return;
 
   const latest = withData[withData.length - 1];
