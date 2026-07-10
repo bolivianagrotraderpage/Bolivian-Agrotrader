@@ -133,6 +133,16 @@
   .filter-chip .chip-dot{
     width:8px; height:8px; border-radius:50%; display:inline-block; flex-shrink:0;
   }
+  .period-filters{
+    padding-bottom:14px;
+    margin-bottom:14px;
+    border-bottom:1px dashed var(--line);
+  }
+  .period-chip.active{
+    background:var(--costos-dim);
+    color:var(--costos);
+    border-color:var(--costos);
+  }
   .empty-state{
     color:var(--text-dim);
     font-size:13px;
@@ -260,6 +270,7 @@
 
     <div class="fob-subsection-label">Histórico de precios por producto</div>
     <div class="chart-panel">
+      <div id="mePreciosPeriod" class="chart-filters period-filters"></div>
       <div id="mePreciosFilters" class="chart-filters"></div>
       <canvas id="mePreciosChart"></canvas>
       <div id="mePreciosChartsEmpty" class="empty-state">Aún no hay histórico de precios de Mercado Exterior.</div>
@@ -267,6 +278,7 @@
 
     <div class="fob-subsection-label">Histórico de bases por producto</div>
     <div class="chart-panel">
+      <div id="meBasePeriod" class="chart-filters period-filters"></div>
       <div id="meBaseFilters" class="chart-filters"></div>
       <canvas id="meBaseChart"></canvas>
       <div id="meBaseChartsEmpty" class="empty-state">Aún no hay histórico de bases de Mercado Exterior.</div>
@@ -278,6 +290,7 @@
     <div class="sub market-title">Histórico de FOB Pto Aguirre y FCA SCZ (Montero) por producto</div>
 
     <div class="chart-panel">
+      <div id="rosarioPeriod" class="chart-filters period-filters"></div>
       <div id="rosarioFilters" class="chart-filters"></div>
       <canvas id="rosarioChart"></canvas>
       <div id="rosarioChartsEmpty" class="empty-state">Aún no hay histórico de costos de Rosario.</div>
@@ -288,6 +301,7 @@
     <div class="sub market-title">Histórico de FOB Desaguadero y FCA SCZ (Montero) por producto</div>
 
     <div class="chart-panel">
+      <div id="limaPeriod" class="chart-filters period-filters"></div>
       <div id="limaFilters" class="chart-filters"></div>
       <canvas id="limaChart"></canvas>
       <div id="limaChartsEmpty" class="empty-state">Aún no hay histórico de costos de Lima.</div>
@@ -301,6 +315,7 @@
     <h2>Maíz, sorgo y harinas</h2>
     <div class="sub">Cochabamba · Santa Cruz · Anapo</div>
     <div class="chart-panel">
+      <div id="grainsPeriod" class="chart-filters period-filters"></div>
       <div id="grainsFilters" class="chart-filters"></div>
       <canvas id="grainsChart"></canvas>
       <div id="grainsEmpty" class="empty-state">Aún no hay datos. Agregue un registro con el formulario en la página principal.</div>
@@ -314,6 +329,7 @@
     <h2>Soya, aceite y torta — FOB</h2>
     <div class="sub">Perú · Bolivia · Chicago · Argentina</div>
     <div class="chart-panel">
+      <div id="soyPeriod" class="chart-filters period-filters"></div>
       <div id="soyFilters" class="chart-filters"></div>
       <canvas id="soyChart"></canvas>
       <div id="soyEmpty" class="empty-state">Aún no hay datos. Agregue un registro con el formulario en la página principal.</div>
@@ -326,6 +342,7 @@
     <span class="group-label freight">Fletes</span>
     <h2>Lima y Arica</h2>
     <div class="chart-panel">
+      <div id="freightPeriod" class="chart-filters period-filters"></div>
       <div id="freightFilters" class="chart-filters"></div>
       <canvas id="freightChart"></canvas>
       <div id="freightEmpty" class="empty-state">Aún no hay datos. Agregue un registro con el formulario en la página principal.</div>
@@ -405,6 +422,102 @@ async function loadHistory(){
 }
 
 const chartInstances = {};
+
+// ---- date period filtering ----------------------------------------------
+// Every chart gets its own 5-way time-range control. Narrower ranges keep
+// the full YYYY-MM-DD date; broader ones truncate to YYYY-MM so the axis
+// isn't cluttered with a label per day. "Anual" shows the entire history.
+const DATE_PERIODS = [
+  { key: 'yearly',    label: 'Anual',      days: null, format: d => d.slice(0, 7) },
+  { key: 'quarterly', label: 'Trimestral', days: 365,  format: d => d.slice(0, 7) },
+  { key: 'monthly',   label: 'Mensual',    days: 60,   format: d => d.slice(0, 7) },
+  { key: 'weekly',    label: 'Semanal',    days: 28,   format: d => d },
+  { key: 'daily',     label: 'Diario',     days: 7,    format: d => d },
+];
+const DEFAULT_PERIOD = 'yearly';
+
+// Slices the full (unfiltered) labels/datasets down to the trailing N
+// days implied by `period` (or the whole range for "yearly"), then
+// applies that period's date-label format. Never mutates the originals,
+// so switching periods repeatedly always re-slices from the full data.
+function filterByPeriod(fullLabels, fullDatasets, period){
+  let startIdx = 0;
+  if (period.days !== null && fullLabels.length){
+    const cutoff = new Date(fullLabels[fullLabels.length - 1]);
+    cutoff.setDate(cutoff.getDate() - period.days);
+    const idx = fullLabels.findIndex(d => new Date(d) >= cutoff);
+    startIdx = idx === -1 ? fullLabels.length : idx;
+  }
+  return {
+    labels: fullLabels.slice(startIdx).map(period.format),
+    datasets: fullDatasets.map(ds => ({ ...ds, data: ds.data.slice(startIdx) })),
+  };
+}
+
+// Full/unfiltered data + DOM ids per chart, keyed the same way as
+// chartInstances, so a period switch can re-slice from the original
+// data instead of re-fetching or losing points permanently.
+const chartFullData = {};
+const chartPeriods = {};
+
+function renderPeriodChips(periodId, key){
+  const container = document.getElementById(periodId);
+  if (!container) return;
+  container.innerHTML = '';
+  DATE_PERIODS.forEach(period => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'filter-chip period-chip' + (period.key === (chartPeriods[key] || DEFAULT_PERIOD) ? ' active' : '');
+    btn.textContent = period.label;
+    btn.addEventListener('click', () => applyPeriod(key, period.key));
+    container.appendChild(btn);
+  });
+}
+
+// Re-slices a chart's full data to the chosen period, rebuilds the
+// Chart.js instance, and re-renders its group/line filter chips (reset
+// to "Todos" — the previous selection isn't preserved across a period
+// switch, since the underlying line set can change size).
+function applyPeriod(key, periodKey){
+  const full = chartFullData[key];
+  if (!full) return;
+  chartPeriods[key] = periodKey;
+  const period = DATE_PERIODS.find(p => p.key === periodKey);
+  const { labels, datasets } = filterByPeriod(full.labels, full.datasets, period);
+
+  const periodContainer = document.getElementById(full.periodId);
+  if (periodContainer) {
+    Array.from(periodContainer.children).forEach((btn, i) => {
+      btn.classList.toggle('active', DATE_PERIODS[i].key === periodKey);
+    });
+  }
+
+  const hasData = datasets.some(ds => ds.data.some(v => v !== null));
+  toggleEmpty(full.emptyId, hasData);
+  const canvas = document.getElementById(full.canvasId);
+  canvas.style.display = hasData ? 'block' : 'none';
+  if (!hasData) { document.getElementById(full.filtersId).innerHTML = ''; return; }
+
+  if (chartInstances[key]) chartInstances[key].destroy();
+  chartInstances[key] = new Chart(canvas, { type: 'line', data: { labels, datasets }, options: baseOptions() });
+
+  if (full.groups) {
+    renderGroupedFilterChips(full.filtersId, () => chartInstances[key], full.groups);
+  } else {
+    renderFilterChips(full.filtersId, () => chartInstances[key], datasets);
+  }
+}
+
+// Stores a chart's full data, renders its period chips, and does the
+// initial render at the default period ("Anual" — the whole history).
+// `groups` is optional: pass an array of {key,label,color} for
+// grouped filtering (Mercado Exterior/Rosario/Lima style), or omit it
+// for the simple "isolate one line" style (grains/soy/freight).
+function registerChart(key, canvasId, filtersId, periodId, emptyId, labels, datasets, groups){
+  chartFullData[key] = { labels, datasets, canvasId, filtersId, periodId, emptyId, groups: groups || null };
+  renderPeriodChips(periodId, key);
+  applyPeriod(key, chartPeriods[key] || DEFAULT_PERIOD);
+}
 
 function lineDataset(label, color, points){
   return { label, data: points, borderColor: color, backgroundColor: color, borderWidth: 2, tension: 0.25, spanGaps: true, pointRadius: 3 };
@@ -492,16 +605,6 @@ function renderGroupedFilterChips(containerId, chartGetter, groups){
   });
 }
 
-function renderChartPanel(canvasId, filtersId, emptyId, key, labels, datasets, groups){
-  const hasData = datasets.some(ds => ds.data.some(v => v !== null));
-  toggleEmpty(emptyId, hasData);
-  const canvas = document.getElementById(canvasId);
-  canvas.style.display = hasData ? 'block' : 'none';
-  if (!hasData) { document.getElementById(filtersId).innerHTML = ''; return; }
-  if (chartInstances[key]) chartInstances[key].destroy();
-  chartInstances[key] = new Chart(canvas, { type:'line', data:{labels, datasets}, options: baseOptions() });
-  renderGroupedFilterChips(filtersId, () => chartInstances[key], groups);
-}
 // ---- render everything --------------------------------------------------
 async function renderAll(){
   const history = await loadHistory();
@@ -509,18 +612,14 @@ async function renderAll(){
   const labels = all.map(s => s.date);
 
   renderMercadoExteriorCharts(all, labels);
-  renderVentaSojaCharts(all, labels, 'rosarioChart', 'rosarioFilters', 'rosarioChartsEmpty', 'venta_soja_rosario', 'fob_pto_aguirre', 'FOB Pto Aguirre', 'ros');
-  renderVentaSojaCharts(all, labels, 'limaChart', 'limaFilters', 'limaChartsEmpty', 'venta_soja_lima', 'fob_desaguadero', 'FOB Desaguadero', 'lima');
+  renderVentaSojaCharts(all, labels, 'rosarioChart', 'rosarioFilters', 'rosarioPeriod', 'rosarioChartsEmpty', 'venta_soja_rosario', 'fob_pto_aguirre', 'FOB Pto Aguirre', 'ros');
+  renderVentaSojaCharts(all, labels, 'limaChart', 'limaFilters', 'limaPeriod', 'limaChartsEmpty', 'venta_soja_lima', 'fob_desaguadero', 'FOB Desaguadero', 'lima');
   renderGrains(all, labels);
   renderSoy(all, labels);
   renderFreight(all, labels);
 }
 
 function renderGrains(all, labels){
-  const hasData = all.length > 0;
-  toggleEmpty('grainsEmpty', hasData);
-  document.getElementById('grainsChart').style.display = hasData ? 'block' : 'none';
-  if (!hasData) { document.getElementById('grainsFilters').innerHTML = ''; return; }
   const colors = ['#D9A441', '#C97A3E', '#8B6A2E', '#B99A5F'];
   const datasets = [];
   GRAIN_PRODUCTS.forEach((p, i) => {
@@ -529,16 +628,10 @@ function renderGrains(all, labels){
       if (points.some(v => v !== null)) datasets.push(lineDataset(`${p.label} · ${r.label}`, colors[(i*GRAIN_REGIONS.length + j) % colors.length], points));
     });
   });
-  if (chartInstances.grains) chartInstances.grains.destroy();
-  chartInstances.grains = new Chart(document.getElementById('grainsChart'), { type:'line', data:{labels, datasets}, options: baseOptions() });
-  renderFilterChips('grainsFilters', () => chartInstances.grains, datasets);
+  registerChart('grains', 'grainsChart', 'grainsFilters', 'grainsPeriod', 'grainsEmpty', labels, datasets);
 }
 
 function renderSoy(all, labels){
-  const hasData = all.length > 0;
-  toggleEmpty('soyEmpty', hasData);
-  document.getElementById('soyChart').style.display = hasData ? 'block' : 'none';
-  if (!hasData) { document.getElementById('soyFilters').innerHTML = ''; return; }
   const colors = ['#8CAE7C', '#6B8F5C', '#4E7A44', '#A9C29B'];
   const datasets = [];
   SOY_PRODUCTS.forEach((p, i) => {
@@ -547,24 +640,16 @@ function renderSoy(all, labels){
       if (points.some(v => v !== null)) datasets.push(lineDataset(`${p.label} · ${r.label}`, colors[(i*SOY_REGIONS.length + j) % colors.length], points));
     });
   });
-  if (chartInstances.soy) chartInstances.soy.destroy();
-  chartInstances.soy = new Chart(document.getElementById('soyChart'), { type:'line', data:{labels, datasets}, options: baseOptions() });
-  renderFilterChips('soyFilters', () => chartInstances.soy, datasets);
+  registerChart('soy', 'soyChart', 'soyFilters', 'soyPeriod', 'soyEmpty', labels, datasets);
 }
 
 function renderFreight(all, labels){
-  const hasData = all.length > 0;
-  toggleEmpty('freightEmpty', hasData);
-  document.getElementById('freightChart').style.display = hasData ? 'block' : 'none';
-  if (!hasData) { document.getElementById('freightFilters').innerHTML = ''; return; }
   const colors = ['#7FA6C4', '#5A85A8'];
   const datasets = FREIGHT_ROUTES.map((r, i) => {
     const points = all.map(s => (s.freight && s.freight[r.key] !== undefined) ? s.freight[r.key] : null);
     return lineDataset(r.label, colors[i % colors.length], points);
   });
-  if (chartInstances.freight) chartInstances.freight.destroy();
-  chartInstances.freight = new Chart(document.getElementById('freightChart'), { type:'line', data:{labels, datasets}, options: baseOptions() });
-  renderFilterChips('freightFilters', () => chartInstances.freight, datasets);
+  registerChart('freight', 'freightChart', 'freightFilters', 'freightPeriod', 'freightEmpty', labels, datasets);
 }
 
 // One combined chart for precios: 9 lines (3 products × 3 markets),
@@ -585,7 +670,7 @@ function renderMercadoExteriorCharts(all, labels){
     });
   });
   const marketGroups = MERCADO_EXT_MARKETS.map(m => ({ key: m.key, label: m.label, color: getComputedColorOrVar(m.color) }));
-  renderChartPanel('mePreciosChart', 'mePreciosFilters', 'mePreciosChartsEmpty', 'me-precios', labels, preciosDatasets, marketGroups);
+  registerChart('me-precios', 'mePreciosChart', 'mePreciosFilters', 'mePreciosPeriod', 'mePreciosChartsEmpty', labels, preciosDatasets, marketGroups);
 
   const baseDatasets = [];
   MERCADO_EXT_PRODUCTS.forEach((p, pIdx) => {
@@ -600,7 +685,7 @@ function renderMercadoExteriorCharts(all, labels){
     });
   });
   const baseGroups = MERCADO_EXT_BASES.map(b => ({ key: b.key, label: b.label, color: getComputedColorOrVar(b.color) }));
-  renderChartPanel('meBaseChart', 'meBaseFilters', 'meBaseChartsEmpty', 'me-base', labels, baseDatasets, baseGroups);
+  registerChart('me-base', 'meBaseChart', 'meBaseFilters', 'meBasePeriod', 'meBaseChartsEmpty', labels, baseDatasets, baseGroups);
 }
 
 // Chart.js needs a resolved color, not a CSS var() string — resolve once
@@ -619,7 +704,7 @@ function getComputedColorOrVar(cssVarExpr){
 // total, filtered by metric group ("Todos" / FOB / FCA / Costo G
 // industrial / Costo exp / Costo transporte), same pattern as Mercado
 // Exterior's market/base filters.
-function renderVentaSojaCharts(all, labels, canvasId, filtersId, emptyId, routeKey, fobMetricKey, fobLabel, chartKey){
+function renderVentaSojaCharts(all, labels, canvasId, filtersId, periodId, emptyId, routeKey, fobMetricKey, fobLabel, chartKey){
   function productSeries(metric, shades, groupKey, groupLabel){
     return VENTA_SOJA_PRODUCTS.map((p, idx) => {
       const points = all.map(s => {
@@ -651,7 +736,7 @@ function renderVentaSojaCharts(all, labels, canvasId, filtersId, emptyId, routeK
     { key: 'transp', label: 'Costo total transporte', color: VENTA_METRIC_SHADES.costo_total_transporte[0] },
   ];
 
-  renderChartPanel(canvasId, filtersId, emptyId, chartKey, labels, datasets, groups);
+  registerChart(chartKey, canvasId, filtersId, periodId, emptyId, labels, datasets, groups);
 }
 
 renderAll();
