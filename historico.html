@@ -279,12 +279,18 @@
     <div class="sub market-title">Soya grano, Harina Solvente y Aceite — Rosario / Chicago / Desaguadero, y bases vs. Chicago</div>
 
     <div class="fob-subsection-label">Histórico de precios por producto</div>
-    <div id="mePreciosCharts" class="chart-grid-3"></div>
-    <div id="mePreciosChartsEmpty" class="empty-state" style="margin-bottom:24px;">Aún no hay histórico de precios de Mercado Exterior.</div>
+    <div class="chart-panel">
+      <div id="mePreciosFilters" class="chart-filters"></div>
+      <canvas id="mePreciosChart"></canvas>
+      <div id="mePreciosChartsEmpty" class="empty-state">Aún no hay histórico de precios de Mercado Exterior.</div>
+    </div>
 
     <div class="fob-subsection-label">Histórico de bases por producto</div>
-    <div id="meBaseCharts" class="chart-grid-3"></div>
-    <div id="meBaseChartsEmpty" class="empty-state">Aún no hay histórico de bases de Mercado Exterior.</div>
+    <div class="chart-panel">
+      <div id="meBaseFilters" class="chart-filters"></div>
+      <canvas id="meBaseChart"></canvas>
+      <div id="meBaseChartsEmpty" class="empty-state">Aún no hay histórico de bases de Mercado Exterior.</div>
+    </div>
     <p class="footnote">*Base: diferencia entre el precio del mercado de referencia (Rosario o Desaguadero) y Chicago.</p>
 
     <div class="double-line-divider"></div>
@@ -379,6 +385,19 @@ const MERCADO_EXT_BASES = [
 ];
 const MERCADO_EXT_TO_VENTA_PRODUCT = { soya_grano: 'grano', harina_solvente: 'solvente', aceite: 'aceite' };
 
+// Per-market / per-base shade palettes: 3 shades each (one per product),
+// derived from that market's/base's accent color so all its lines read
+// as a family while still being distinguishable in the combined chart.
+const MERCADO_EXT_MARKET_SHADES = {
+  chicago:     ['#7FA6C4', '#5A85A8', '#A9C6DE'],
+  rosario:     ['#C97A6B', '#A85A4E', '#E0998C'],
+  desaguadero: ['#D9A441', '#B8862E', '#E8C170'],
+};
+const MERCADO_EXT_BASE_SHADES = {
+  rosario_chicago:     ['#C97A6B', '#A85A4E', '#E0998C'],
+  desaguadero_chicago: ['#D9A441', '#B8862E', '#E8C170'],
+};
+
 // ---- data loading -----------------------------------------------------
 async function loadHistory(){
   try {
@@ -442,7 +461,50 @@ function renderFilterChips(containerId, chartGetter, datasets){
   });
 }
 
-// Builds one mini chart-panel (title + filter chips + canvas), appends it
+// Like renderFilterChips, but each chip toggles a *group* of datasets
+// (e.g. all 3 product lines for one market) rather than a single line.
+// Datasets must carry a `_filterGroup` property matching group.key.
+function renderGroupedFilterChips(containerId, chartGetter, groups){
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  if (groups.length < 2) return;
+
+  function setActive(btn){
+    container.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  const allBtn = document.createElement('button');
+  allBtn.type = 'button'; allBtn.className = 'filter-chip active'; allBtn.textContent = 'Todos';
+  allBtn.addEventListener('click', () => {
+    const chart = chartGetter();
+    chart.data.datasets.forEach(ds => ds.hidden = false);
+    chart.update(); setActive(allBtn);
+  });
+  container.appendChild(allBtn);
+
+  groups.forEach(group => {
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'filter-chip';
+    btn.innerHTML = `<span class="chip-dot" style="background:${group.color}"></span>${group.label}`;
+    btn.addEventListener('click', () => {
+      const chart = chartGetter();
+      chart.data.datasets.forEach(ds => { ds.hidden = ds._filterGroup !== group.key; });
+      chart.update(); setActive(btn);
+    });
+    container.appendChild(btn);
+  });
+}
+
+function renderChartPanel(canvasId, filtersId, emptyId, key, labels, datasets, groups){
+  const hasData = datasets.some(ds => ds.data.some(v => v !== null));
+  toggleEmpty(emptyId, hasData);
+  const canvas = document.getElementById(canvasId);
+  canvas.style.display = hasData ? 'block' : 'none';
+  if (!hasData) { document.getElementById(filtersId).innerHTML = ''; return; }
+  if (chartInstances[key]) chartInstances[key].destroy();
+  chartInstances[key] = new Chart(canvas, { type:'line', data:{labels, datasets}, options: baseOptions() });
+  renderGroupedFilterChips(filtersId, () => chartInstances[key], groups);
+}
 // to `container`, and renders/updates the Chart.js instance keyed by
 // `key` so it can be destroyed/recreated on refresh without leaking.
 function renderMiniChart(container, key, title, labels, datasets){
@@ -535,45 +597,40 @@ function renderFreight(all, labels){
   renderFilterChips('freightFilters', () => chartInstances.freight, datasets);
 }
 
-// One chart per product (Soya grano / Harina Solvente / Aceite): lines =
-// the 3 markets. Same again for bases: one chart per product, lines =
-// the 2 base types.
+// One combined chart for precios: 9 lines (3 products × 3 markets),
+// filter chips group by market so picking "Chicago" isolates all 3
+// product lines for Chicago at once. Same pattern for bases (6 lines:
+// 3 products × 2 base types), filtered by base type.
 function renderMercadoExteriorCharts(all, labels){
-  const withData = all.filter(s => s.costos && s.costos.mercado_exterior && s.costos.mercado_exterior.precios);
-  const hasPrecios = withData.length > 0;
-  toggleEmpty('mePreciosChartsEmpty', hasPrecios);
-  const preciosContainer = document.getElementById('mePreciosCharts');
-  preciosContainer.innerHTML = '';
-  if (hasPrecios) {
-    MERCADO_EXT_PRODUCTS.forEach(p => {
-      const datasets = MERCADO_EXT_MARKETS.map(market => {
-        const points = all.map(s => {
-          const v = s.costos && s.costos.mercado_exterior && s.costos.mercado_exterior.precios && s.costos.mercado_exterior.precios[market.key];
-          return v && v[p.key] !== undefined ? v[p.key] : null;
-        });
-        return lineDataset(market.label, getComputedColorOrVar(market.color), points);
+  const preciosDatasets = [];
+  MERCADO_EXT_PRODUCTS.forEach((p, pIdx) => {
+    MERCADO_EXT_MARKETS.forEach(market => {
+      const points = all.map(s => {
+        const v = s.costos && s.costos.mercado_exterior && s.costos.mercado_exterior.precios && s.costos.mercado_exterior.precios[market.key];
+        return v && v[p.key] !== undefined ? v[p.key] : null;
       });
-      renderMiniChart(preciosContainer, `me-precio-${p.key}`, p.label, labels, datasets);
+      const ds = lineDataset(`${p.label} · ${market.label}`, MERCADO_EXT_MARKET_SHADES[market.key][pIdx], points);
+      ds._filterGroup = market.key;
+      preciosDatasets.push(ds);
     });
-  }
+  });
+  const marketGroups = MERCADO_EXT_MARKETS.map(m => ({ key: m.key, label: m.label, color: getComputedColorOrVar(m.color) }));
+  renderChartPanel('mePreciosChart', 'mePreciosFilters', 'mePreciosChartsEmpty', 'me-precios', labels, preciosDatasets, marketGroups);
 
-  const withBase = all.filter(s => s.costos && s.costos.mercado_exterior && s.costos.mercado_exterior.base);
-  const hasBase = withBase.length > 0;
-  toggleEmpty('meBaseChartsEmpty', hasBase);
-  const baseContainer = document.getElementById('meBaseCharts');
-  baseContainer.innerHTML = '';
-  if (hasBase) {
-    MERCADO_EXT_PRODUCTS.forEach(p => {
-      const datasets = MERCADO_EXT_BASES.map(b => {
-        const points = all.map(s => {
-          const v = s.costos && s.costos.mercado_exterior && s.costos.mercado_exterior.base && s.costos.mercado_exterior.base[b.key];
-          return v && v[p.key] !== undefined ? v[p.key] : null;
-        });
-        return lineDataset(b.label, getComputedColorOrVar(b.color), points);
+  const baseDatasets = [];
+  MERCADO_EXT_PRODUCTS.forEach((p, pIdx) => {
+    MERCADO_EXT_BASES.forEach(b => {
+      const points = all.map(s => {
+        const v = s.costos && s.costos.mercado_exterior && s.costos.mercado_exterior.base && s.costos.mercado_exterior.base[b.key];
+        return v && v[p.key] !== undefined ? v[p.key] : null;
       });
-      renderMiniChart(baseContainer, `me-base-${p.key}`, p.label, labels, datasets);
+      const ds = lineDataset(`${p.label} · ${b.label}`, MERCADO_EXT_BASE_SHADES[b.key][pIdx], points);
+      ds._filterGroup = b.key;
+      baseDatasets.push(ds);
     });
-  }
+  });
+  const baseGroups = MERCADO_EXT_BASES.map(b => ({ key: b.key, label: b.label, color: getComputedColorOrVar(b.color) }));
+  renderChartPanel('meBaseChart', 'meBaseFilters', 'meBaseChartsEmpty', 'me-base', labels, baseDatasets, baseGroups);
 }
 
 // Chart.js needs a resolved color, not a CSS var() string — resolve once
