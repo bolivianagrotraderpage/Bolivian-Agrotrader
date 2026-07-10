@@ -231,27 +231,7 @@
   .section-divider.divider-freight{ --divider-color: var(--freight); }
   .section-divider.divider-costos{ --divider-color: var(--costos); }
 
-  /* mini chart grid — historical trend per product/route, 3 across */
-  .chart-grid-3{
-    display:grid;
-    grid-template-columns:repeat(3, 1fr);
-    gap:16px;
-    margin-bottom:24px;
-  }
-  .chart-grid-3 .chart-panel{ margin-bottom:0; }
-  .chart-grid-3 .chart-panel canvas{ max-height:190px; }
-  .chart-grid-3 .mini-chart-title{
-    font-size:11.5px;
-    color:var(--text-dim);
-    text-transform:uppercase;
-    letter-spacing:0.06em;
-    margin-bottom:10px;
-  }
-  @media (max-width:900px){
-    .chart-grid-3{ grid-template-columns:repeat(2, 1fr); }
-  }
   @media (max-width:640px){
-    .chart-grid-3{ grid-template-columns:1fr; }
     header{padding:32px 20px 24px;}
     main{padding:0 20px;}
     header h1{font-size:26px;}
@@ -297,15 +277,21 @@
     <h2 class="market-title">Venta de soja — mercado Rosario</h2>
     <div class="sub market-title">Histórico de FOB Pto Aguirre y FCA SCZ (Montero) por producto</div>
 
-    <div id="rosarioCharts" class="chart-grid-3"></div>
-    <div id="rosarioChartsEmpty" class="empty-state">Aún no hay histórico de costos de Rosario.</div>
+    <div class="chart-panel">
+      <div id="rosarioFilters" class="chart-filters"></div>
+      <canvas id="rosarioChart"></canvas>
+      <div id="rosarioChartsEmpty" class="empty-state">Aún no hay histórico de costos de Rosario.</div>
+    </div>
 
     <div class="double-line-divider"></div>
     <h2 class="market-title">Venta de soja — mercado de Lima</h2>
     <div class="sub market-title">Histórico de FOB Desaguadero y FCA SCZ (Montero) por producto</div>
 
-    <div id="limaCharts" class="chart-grid-3"></div>
-    <div id="limaChartsEmpty" class="empty-state">Aún no hay histórico de costos de Lima.</div>
+    <div class="chart-panel">
+      <div id="limaFilters" class="chart-filters"></div>
+      <canvas id="limaChart"></canvas>
+      <div id="limaChartsEmpty" class="empty-state">Aún no hay histórico de costos de Lima.</div>
+    </div>
   </section>
 
   <div class="section-divider divider-grain"></div>
@@ -397,6 +383,17 @@ const MERCADO_EXT_BASE_SHADES = {
   rosario_chicago:     ['#C97A6B', '#A85A4E', '#E0998C'],
   desaguadero_chicago: ['#D9A441', '#B8862E', '#E8C170'],
 };
+
+// Metric-level shade families for the Venta de soja combined charts (one
+// shade per product within each metric group); costo_g_industrial is a
+// scalar (no per-product split) so it gets a single dedicated color.
+const VENTA_METRIC_SHADES = {
+  fob:                   ['#C97A6B', '#A85A4E', '#E0998C'],
+  fca_scz_montero:       ['#D9A441', '#B8862E', '#E8C170'],
+  costo_exp:             ['#7FA6C4', '#5A85A8', '#A9C6DE'],
+  costo_total_transporte:['#8CAE7C', '#6B8F5C', '#4E7A44'],
+};
+const VENTA_GIND_COLOR = '#B5763D';
 
 // ---- data loading -----------------------------------------------------
 async function loadHistory(){
@@ -505,33 +502,6 @@ function renderChartPanel(canvasId, filtersId, emptyId, key, labels, datasets, g
   chartInstances[key] = new Chart(canvas, { type:'line', data:{labels, datasets}, options: baseOptions() });
   renderGroupedFilterChips(filtersId, () => chartInstances[key], groups);
 }
-// to `container`, and renders/updates the Chart.js instance keyed by
-// `key` so it can be destroyed/recreated on refresh without leaking.
-function renderMiniChart(container, key, title, labels, datasets){
-  const hasData = datasets.some(ds => ds.data.some(v => v !== null));
-  const panel = document.createElement('div');
-  panel.className = 'chart-panel';
-  const filtersId = `${key}-filters`;
-  const canvasId = `${key}-canvas`;
-  const emptyId = `${key}-empty`;
-  panel.innerHTML = `
-    <div class="mini-chart-title">${title}</div>
-    <div id="${filtersId}" class="chart-filters"></div>
-    <canvas id="${canvasId}"></canvas>
-    <div id="${emptyId}" class="empty-state" style="display:none;">Sin datos aún</div>
-  `;
-  container.appendChild(panel);
-
-  if (!hasData) {
-    panel.querySelector('canvas').style.display = 'none';
-    panel.querySelector(`#${emptyId}`).style.display = 'block';
-    return;
-  }
-  if (chartInstances[key]) chartInstances[key].destroy();
-  chartInstances[key] = new Chart(document.getElementById(canvasId), { type:'line', data:{labels, datasets}, options: baseOptions() });
-  renderFilterChips(filtersId, () => chartInstances[key], datasets);
-}
-
 // ---- render everything --------------------------------------------------
 async function renderAll(){
   const history = await loadHistory();
@@ -539,8 +509,8 @@ async function renderAll(){
   const labels = all.map(s => s.date);
 
   renderMercadoExteriorCharts(all, labels);
-  renderVentaSojaCharts(all, labels, 'rosarioCharts', 'rosarioChartsEmpty', 'venta_soja_rosario', 'fob_pto_aguirre', 'FOB Pto Aguirre', 'ros');
-  renderVentaSojaCharts(all, labels, 'limaCharts', 'limaChartsEmpty', 'venta_soja_lima', 'fob_desaguadero', 'FOB Desaguadero', 'lima');
+  renderVentaSojaCharts(all, labels, 'rosarioChart', 'rosarioFilters', 'rosarioChartsEmpty', 'venta_soja_rosario', 'fob_pto_aguirre', 'FOB Pto Aguirre', 'ros');
+  renderVentaSojaCharts(all, labels, 'limaChart', 'limaFilters', 'limaChartsEmpty', 'venta_soja_lima', 'fob_desaguadero', 'FOB Desaguadero', 'lima');
   renderGrains(all, labels);
   renderSoy(all, labels);
   renderFreight(all, labels);
@@ -643,35 +613,45 @@ function getComputedColorOrVar(cssVarExpr){
   return _colorCache.getPropertyValue(match[1]).trim() || cssVarExpr;
 }
 
-// Historical charts for a Venta de soja route (Rosario or Lima): FOB /
-// FCA per product, plus Costo de G industrial, Costo exp and Costo total
-// transporte (each per product), read as-is — same fields the cards show.
-function renderVentaSojaCharts(all, labels, containerId, emptyId, routeKey, fobMetricKey, fobLabel, keyPrefix){
-  const withData = all.filter(s => s.costos && s.costos[routeKey]);
-  const hasData = withData.length > 0;
-  toggleEmpty(emptyId, hasData);
-  const container = document.getElementById(containerId);
-  container.innerHTML = '';
-  if (!hasData) return;
-
-  function productSeries(metric){
-    return VENTA_SOJA_PRODUCTS.map(p => {
+// One combined chart per route (Rosario or Lima): FOB, FCA, Costo de
+// exportación and Costo total transporte each contribute 3 product
+// lines, plus Costo de G industrial as a single scalar line — 13 lines
+// total, filtered by metric group ("Todos" / FOB / FCA / Costo G
+// industrial / Costo exp / Costo transporte), same pattern as Mercado
+// Exterior's market/base filters.
+function renderVentaSojaCharts(all, labels, canvasId, filtersId, emptyId, routeKey, fobMetricKey, fobLabel, chartKey){
+  function productSeries(metric, shades, groupKey, groupLabel){
+    return VENTA_SOJA_PRODUCTS.map((p, idx) => {
       const points = all.map(s => {
         const v = s.costos && s.costos[routeKey] && s.costos[routeKey][metric];
         return v && v[p.key] !== undefined ? v[p.key] : null;
       });
-      return lineDataset(p.label, getComputedColorOrVar(p.color), points);
+      const ds = lineDataset(`${groupLabel} · ${p.label}`, shades[idx], points);
+      ds._filterGroup = groupKey;
+      return ds;
     });
   }
 
-  renderMiniChart(container, `${keyPrefix}-fob`, fobLabel, labels, productSeries(fobMetricKey));
-  renderMiniChart(container, `${keyPrefix}-fca`, 'FCA SCZ (Montero)', labels, productSeries('fca_scz_montero'));
+  const datasets = [
+    ...productSeries(fobMetricKey, VENTA_METRIC_SHADES.fob, 'fob', fobLabel),
+    ...productSeries('fca_scz_montero', VENTA_METRIC_SHADES.fca_scz_montero, 'fca', 'FCA SCZ (Montero)'),
+    ...productSeries('costo_exp', VENTA_METRIC_SHADES.costo_exp, 'costoexp', 'Costo de exportación'),
+    ...productSeries('costo_total_transporte', VENTA_METRIC_SHADES.costo_total_transporte, 'transp', 'Costo total transporte'),
+  ];
+  const gIndDataset = lineDataset('Costo de G industrial', VENTA_GIND_COLOR,
+    all.map(s => (s.costos && s.costos[routeKey] && s.costos[routeKey].costo_g_industrial !== undefined) ? s.costos[routeKey].costo_g_industrial : null));
+  gIndDataset._filterGroup = 'gind';
+  datasets.push(gIndDataset);
 
-  const gIndustrialPoints = all.map(s => (s.costos && s.costos[routeKey] && s.costos[routeKey].costo_g_industrial !== undefined) ? s.costos[routeKey].costo_g_industrial : null);
-  renderMiniChart(container, `${keyPrefix}-gind`, 'Costo de G industrial', labels, [lineDataset('Costo G industrial', getComputedColorOrVar('var(--costos)'), gIndustrialPoints)]);
+  const groups = [
+    { key: 'fob', label: fobLabel, color: VENTA_METRIC_SHADES.fob[0] },
+    { key: 'fca', label: 'FCA SCZ (Montero)', color: VENTA_METRIC_SHADES.fca_scz_montero[0] },
+    { key: 'gind', label: 'Costo de G industrial', color: VENTA_GIND_COLOR },
+    { key: 'costoexp', label: 'Costo de exportación', color: VENTA_METRIC_SHADES.costo_exp[0] },
+    { key: 'transp', label: 'Costo total transporte', color: VENTA_METRIC_SHADES.costo_total_transporte[0] },
+  ];
 
-  renderMiniChart(container, `${keyPrefix}-costoexp`, 'Costo de exportación', labels, productSeries('costo_exp'));
-  renderMiniChart(container, `${keyPrefix}-transp`, 'Costo total transporte', labels, productSeries('costo_total_transporte'));
+  renderChartPanel(canvasId, filtersId, emptyId, chartKey, labels, datasets, groups);
 }
 
 renderAll();
