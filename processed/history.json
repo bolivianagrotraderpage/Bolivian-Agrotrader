@@ -990,6 +990,10 @@
             "aceite": -440.46
           }
         }
+      },
+      "resumen_operaciones": {
+        "costo_fca_scz_grano": 337.65,
+        "costo_de_maquila": 45.0
       }
     }
   },
