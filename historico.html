@@ -423,14 +423,33 @@ async function loadHistory(){
 
 const chartInstances = {};
 
+// The "date" field mixes two formats: ISO "YYYY-MM-DD" (written by
+// sync_costos_history.py / today's costos stamp) and "DD/MM/YYYY" (as
+// Google Forms hands back the "Fecha" column). Every place that sorts,
+// filters, or reformats dates needs to understand both.
+function parseFlexibleDate(d){
+  if (/^\d{4}-\d{2}-\d{2}/.test(d)) {
+    const [y, m, day] = d.split('-').map(Number);
+    return new Date(y, m - 1, day);
+  }
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(d);
+  if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  return new Date(d);
+}
+
+function toYearMonth(d){
+  const date = parseFlexibleDate(d);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
 // ---- date period filtering ----------------------------------------------
 // Every chart gets its own 5-way time-range control. Narrower ranges keep
 // the full YYYY-MM-DD date; broader ones truncate to YYYY-MM so the axis
 // isn't cluttered with a label per day. "Anual" shows the entire history.
 const DATE_PERIODS = [
-  { key: 'yearly',    label: 'Anual',      days: null, format: d => d.slice(0, 7) },
-  { key: 'quarterly', label: 'Trimestral', days: 365,  format: d => d.slice(0, 7) },
-  { key: 'monthly',   label: 'Mensual',    days: 60,   format: d => d.slice(0, 7) },
+  { key: 'yearly',    label: 'Anual',      days: null, format: toYearMonth },
+  { key: 'quarterly', label: 'Trimestral', days: 365,  format: toYearMonth },
+  { key: 'monthly',   label: 'Mensual',    days: 60,   format: toYearMonth },
   { key: 'weekly',    label: 'Semanal',    days: 28,   format: d => d },
   { key: 'daily',     label: 'Diario',     days: 7,    format: d => d },
 ];
@@ -443,9 +462,9 @@ const DEFAULT_PERIOD = 'yearly';
 function filterByPeriod(fullLabels, fullDatasets, period){
   let startIdx = 0;
   if (period.days !== null && fullLabels.length){
-    const cutoff = new Date(fullLabels[fullLabels.length - 1]);
+    const cutoff = parseFlexibleDate(fullLabels[fullLabels.length - 1]);
     cutoff.setDate(cutoff.getDate() - period.days);
-    const idx = fullLabels.findIndex(d => new Date(d) >= cutoff);
+    const idx = fullLabels.findIndex(d => parseFlexibleDate(d) >= cutoff);
     startIdx = idx === -1 ? fullLabels.length : idx;
   }
   return {
@@ -608,7 +627,7 @@ function renderGroupedFilterChips(containerId, chartGetter, groups){
 // ---- render everything --------------------------------------------------
 async function renderAll(){
   const history = await loadHistory();
-  const all = history.slice().sort((a,b) => a.date.localeCompare(b.date));
+  const all = history.slice().sort((a,b) => parseFlexibleDate(a.date) - parseFlexibleDate(b.date));
   const labels = all.map(s => s.date);
 
   renderMercadoExteriorCharts(all, labels);
