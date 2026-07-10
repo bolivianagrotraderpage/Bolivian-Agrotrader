@@ -236,6 +236,30 @@
     color:var(--text-dim);
     margin-top:6px;
   }
+  /* split card body — two subsections side by side under one header,
+     e.g. Mercado Exterior's "Página" value next to its "B.costo" value */
+  .fob-card .fob-card-body.split{
+    display:flex;
+    padding:0;
+    text-align:center;
+  }
+  .fob-card .fob-card-body.split .split-half{
+    flex:1;
+    padding:14px 10px;
+  }
+  .fob-card .fob-card-body.split .split-half:first-child{
+    border-right:1px solid var(--line);
+  }
+  .fob-card .fob-card-body.split .split-label{
+    font-size:9.5px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text-dim);
+    margin-bottom:6px;
+  }
+  .fob-card .fob-card-body.split .value{
+    font-size:19px;
+  }
   @media (max-width:640px){
     .fob-section-grid{grid-template-columns:repeat(2, 1fr);}
     .fob-card.span-2{grid-column:span 2;}
@@ -342,7 +366,7 @@
     <div class="double-line-divider lima-subsection"></div>
 
     <div class="lima-subsection" style="text-align:center;">
-      <div class="costos-subhead">Venta de soja — mercado Desaguadero</div>
+      <div class="costos-subhead">Venta de soja — mercado de Lima</div>
       <div class="sub">FOB Desaguadero y FCA SCZ (Montero) por producto</div>
     </div>
 
@@ -606,16 +630,29 @@ const MERCADO_EXT_PRODUCTS = [
   {key:'aceite', label:'Aceite'},
 ];
 const MERCADO_EXT_BASES = [
-  {key:'rosario_chicago', label:'Base Rosario − Chicago', color:'var(--costos)'},
-  {key:'desaguadero_chicago', label:'Base Desaguadero − Chicago', color:'var(--grain)'},
+  {key:'rosario_chicago', label:'Base Rosario − Chicago', color:'var(--costos)', route:'venta_soja_rosario'},
+  {key:'desaguadero_chicago', label:'Base Desaguadero − Chicago', color:'var(--grain)', route:'venta_soja_lima'},
 ];
+// Mercado Exterior uses "soya_grano/harina_solvente/aceite"; the Venta de
+// soja (Rosario/Lima) sections use "grano/solvente/aceite" for the same
+// products — this maps one to the other.
+const MERCADO_EXT_TO_VENTA_PRODUCT = {
+  soya_grano: 'grano',
+  harina_solvente: 'solvente',
+  aceite: 'aceite',
+};
 
 // Mercado Exterior: two column-stacked grids read as-is from the
 // "MercadoExterior" sheet — no computation, just display.
-// Grid 1: one column per market (Rosario/Chicago/Lima), each holding its
-// 3 product prices stacked vertically.
+// Grid 1: one column per market (Rosario/Chicago/Desaguadero), each
+// holding its 3 product prices stacked vertically. Rosario and
+// Desaguadero cards are split — the page's own value next to the
+// matching FCA SCZ (Montero) value already shown under "Venta de soja",
+// so both are visible without scrolling. Chicago has no such counterpart,
+// so it stays a plain single-value card.
 // Grid 2: one column per product, each holding its 2 base values
-// (Rosario-Chicago, Lima-Chicago) stacked vertically.
+// (Rosario-Chicago, Desaguadero-Chicago), also split — the base value
+// next to that route's "Costo total transporte" value.
 function renderMercadoExterior(all){
   const withData = all.filter(s => s.costos && s.costos.mercado_exterior);
   const hasData = withData.length > 0;
@@ -630,6 +667,15 @@ function renderMercadoExterior(all){
   const latest = withData[withData.length - 1];
   const mx = latest.costos.mercado_exterior;
 
+  // Latest snapshot per route, for the "B.costo" / "Costo total transporte" values.
+  const rosarioData = all.filter(s => s.costos && s.costos.venta_soja_rosario);
+  const limaData = all.filter(s => s.costos && s.costos.venta_soja_lima);
+  const latestByRoute = {
+    venta_soja_rosario: rosarioData.length ? rosarioData[rosarioData.length - 1].costos.venta_soja_rosario : null,
+    venta_soja_lima: limaData.length ? limaData[limaData.length - 1].costos.venta_soja_lima : null,
+  };
+  const routeByMarket = { rosario: 'venta_soja_rosario', desaguadero: 'venta_soja_lima' };
+
   const precios = mx.precios || {};
   MERCADO_EXT_MARKETS.forEach(market => {
     const column = document.createElement('div');
@@ -640,14 +686,29 @@ function renderMercadoExterior(all){
     column.appendChild(label);
 
     const values = precios[market.key] || {};
+    const route = routeByMarket[market.key];
+    const ventaData = route ? latestByRoute[route] : null;
+
     MERCADO_EXT_PRODUCTS.forEach(p => {
       const val = values[p.key];
-      column.appendChild(buildFobCard(
-        p.label, market.label,
-        val !== undefined ? val.toFixed(2) : '—',
-        val !== undefined ? `USD/tm · ${latest.date}` : 'sin dato',
-        market.color
-      ));
+      const pageValue = val !== undefined ? val.toFixed(2) : '—';
+
+      if (route) {
+        const ventaProduct = MERCADO_EXT_TO_VENTA_PRODUCT[p.key];
+        const bCosto = ventaData && ventaData.fca_scz_montero ? ventaData.fca_scz_montero[ventaProduct] : undefined;
+        column.appendChild(buildSplitFobCard(
+          p.label, market.label,
+          'Página', pageValue,
+          'B.costo', bCosto !== undefined ? bCosto.toFixed(2) : '—',
+          market.color
+        ));
+      } else {
+        column.appendChild(buildFobCard(
+          p.label, market.label, pageValue,
+          val !== undefined ? `USD/tm · ${latest.date}` : 'sin dato',
+          market.color
+        ));
+      }
     });
     preciosGrid.appendChild(column);
   });
@@ -663,10 +724,14 @@ function renderMercadoExterior(all){
 
     MERCADO_EXT_BASES.forEach(b => {
       const val = base[b.key] ? base[b.key][p.key] : undefined;
-      column.appendChild(buildFobCard(
+      const ventaData = latestByRoute[b.route];
+      const ventaProduct = MERCADO_EXT_TO_VENTA_PRODUCT[p.key];
+      const costoTransporte = ventaData && ventaData.costo_total_transporte ? ventaData.costo_total_transporte[ventaProduct] : undefined;
+
+      column.appendChild(buildSplitFobCard(
         'Base', b.label.replace('Base ', ''),
-        val !== undefined ? val.toFixed(2) : '—',
-        val !== undefined ? `USD/tm · ${latest.date}` : 'sin dato',
+        'Base', val !== undefined ? val.toFixed(2) : '—',
+        'Costo transp.', costoTransporte !== undefined ? costoTransporte.toFixed(2) : '—',
         b.color
       ));
     });
@@ -686,6 +751,33 @@ function buildFobCard(l1, l2, value, unit, color, extraClass){
     <div class="fob-card-body">
       <div class="value${value === '—' ? ' placeholder' : ''}">${value}</div>
       <div class="unit">${unit}</div>
+    </div>
+  `;
+  return card;
+}
+
+// Same header as buildFobCard, but the body is split into two
+// subsections side by side — e.g. Mercado Exterior's own page value next
+// to the corresponding build-de-costo value, so both are visible without
+// having to scroll to a different section.
+function buildSplitFobCard(l1, l2, leftLabel, leftValue, rightLabel, rightValue, color){
+  const card = document.createElement('div');
+  card.className = 'fob-card';
+  card.style.setProperty('--card-color', color);
+  card.innerHTML = `
+    <div class="fob-card-header">
+      <div class="l1">${l1}</div>
+      <div class="l2">${l2}</div>
+    </div>
+    <div class="fob-card-body split">
+      <div class="split-half">
+        <div class="split-label">${leftLabel}</div>
+        <div class="value${leftValue === '—' ? ' placeholder' : ''}">${leftValue}</div>
+      </div>
+      <div class="split-half">
+        <div class="split-label">${rightLabel}</div>
+        <div class="value${rightValue === '—' ? ' placeholder' : ''}">${rightValue}</div>
+      </div>
     </div>
   `;
   return card;
