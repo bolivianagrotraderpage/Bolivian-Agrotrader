@@ -244,7 +244,7 @@
     margin-top:6px;
   }
   /* split card body — two subsections side by side under one header,
-     e.g. Mercado Exterior's "Fuente" value next to its "Descontado" value */
+     e.g. Mercado Exterior's "Mercado" value next to its "FCA SC" value */
   .fob-card .fob-card-body.split{
     display:flex;
     padding:0;
@@ -352,7 +352,7 @@
 
     <div id="mercadoExtEmpty" class="empty-state">Aún no hay datos de Mercado Exterior. Se toman de la hoja Mercado Exterior.</div>
 
-    <p class="footnote">*Fuente: precio tomado directamente de la página de referencia correspondiente. Descontado: ese mismo precio, neto de los costos de exportación y transporte aplicables.</p>
+    <p class="footnote">*Mercado: precio tomado directamente de la página de referencia correspondiente. FCA SC: ese mismo precio, neto de los costos de exportación y transporte aplicables (FCA Santa Cruz).</p>
 
     <div class="double-line-divider"></div>
     <h2 class="market-title">Venta de soja — mercado Rosario</h2>
@@ -676,7 +676,7 @@ function renderMercadoExterior(all){
   const latest = withData[withData.length - 1];
   const mx = latest.costos.mercado_exterior;
 
-  // Latest snapshot per route, for the "Descontado" / "Costo total transporte" values.
+  // Latest snapshot per route, for the "FCA SC" / "Costo total transporte" values.
   const rosarioData = all.filter(s => s.costos && s.costos.venta_soja_rosario);
   const limaData = all.filter(s => s.costos && s.costos.venta_soja_lima);
   const latestByRoute = {
@@ -707,8 +707,8 @@ function renderMercadoExterior(all){
         const bCosto = ventaData && ventaData.fca_scz_montero ? ventaData.fca_scz_montero[ventaProduct] : undefined;
         column.appendChild(buildSplitFobCard(
           p.label, market.label,
-          'Fuente', pageValue,
-          'Descontado', bCosto !== undefined ? bCosto.toFixed(2) : '—',
+          'Mercado', pageValue,
+          'FCA SC', bCosto !== undefined ? bCosto.toFixed(2) : '—',
           market.color
         ));
       } else {
