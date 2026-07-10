@@ -653,15 +653,15 @@ const MERCADO_EXT_TO_VENTA_PRODUCT = {
 
 // Mercado Exterior: two column-stacked grids read as-is from the
 // "MercadoExterior" sheet — no computation, just display.
-// Grid 1: one column per market (Rosario/Chicago/Desaguadero), each
-// holding its 3 product prices stacked vertically. Rosario and
-// Desaguadero cards are split — the page's own value next to the
-// matching FCA SCZ (Montero) value already shown under "Venta de soja",
-// so both are visible without scrolling. Chicago has no such counterpart,
-// so it stays a plain single-value card.
-// Grid 2: one column per product, each holding its 2 base values
-// (Rosario-Chicago, Desaguadero-Chicago), also split — the base value
-// next to that route's "Costo total transporte" value.
+// Grid 1: one column per product (Grano/Solvente/Aceite), each holding
+// its 3 market prices stacked vertically (Chicago/Rosario/Desaguadero).
+// Rosario and Desaguadero cards are split — the page's own value next to
+// the matching FCA SCZ (Montero) value already shown under "Venta de
+// soja", so both are visible without scrolling. Chicago has no such
+// counterpart, so it stays a plain single-value card.
+// Grid 2: one column per base type (Rosario-Chicago, Desaguadero-Chicago),
+// each holding its 3 product values stacked vertically, also split — the
+// base value next to that route's "Costo total transporte" value.
 function renderMercadoExterior(all){
   const withData = all.filter(s => s.costos && s.costos.mercado_exterior);
   const hasData = withData.length > 0;
@@ -686,21 +686,20 @@ function renderMercadoExterior(all){
   const routeByMarket = { rosario: 'venta_soja_rosario', desaguadero: 'venta_soja_lima' };
 
   const precios = mx.precios || {};
-  MERCADO_EXT_MARKETS.forEach(market => {
+  MERCADO_EXT_PRODUCTS.forEach(p => {
     const column = document.createElement('div');
     column.className = 'stack-column';
     const label = document.createElement('div');
     label.className = 'fob-subsection-label';
-    label.textContent = market.label;
+    label.textContent = p.label;
     column.appendChild(label);
 
-    const values = precios[market.key] || {};
-    const route = routeByMarket[market.key];
-    const ventaData = route ? latestByRoute[route] : null;
-
-    MERCADO_EXT_PRODUCTS.forEach(p => {
+    MERCADO_EXT_MARKETS.forEach(market => {
+      const values = precios[market.key] || {};
       const val = values[p.key];
       const pageValue = val !== undefined ? val.toFixed(2) : '—';
+      const route = routeByMarket[market.key];
+      const ventaData = route ? latestByRoute[route] : null;
 
       if (route) {
         const ventaProduct = MERCADO_EXT_TO_VENTA_PRODUCT[p.key];
@@ -723,22 +722,23 @@ function renderMercadoExterior(all){
   });
 
   const base = mx.base || {};
-  MERCADO_EXT_PRODUCTS.forEach(p => {
+  MERCADO_EXT_BASES.forEach(b => {
     const column = document.createElement('div');
     column.className = 'stack-column';
     const label = document.createElement('div');
     label.className = 'fob-subsection-label';
-    label.textContent = p.label;
+    label.textContent = b.label;
     column.appendChild(label);
 
-    MERCADO_EXT_BASES.forEach(b => {
+    const ventaData = latestByRoute[b.route];
+
+    MERCADO_EXT_PRODUCTS.forEach(p => {
       const val = base[b.key] ? base[b.key][p.key] : undefined;
-      const ventaData = latestByRoute[b.route];
       const ventaProduct = MERCADO_EXT_TO_VENTA_PRODUCT[p.key];
       const costoTransporte = ventaData && ventaData.costo_total_transporte ? ventaData.costo_total_transporte[ventaProduct] : undefined;
 
       column.appendChild(buildSplitFobCard(
-        'Base', b.label.replace('Base ', ''),
+        'Base', p.label,
         'Base', val !== undefined ? val.toFixed(2) : '—',
         'Costo transp.', costoTransporte !== undefined ? costoTransporte.toFixed(2) : '—',
         b.color
