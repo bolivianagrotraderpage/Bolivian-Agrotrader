@@ -346,6 +346,8 @@
 
     <div id="mercadoExtPreciosGrid" class="stack-grid"></div>
 
+    <div id="mercadoExtResumenRow" class="stack-grid"></div>
+
     <div class="subtle-divider"></div>
 
     <div id="mercadoExtBaseGrid" class="stack-grid"></div>
@@ -669,8 +671,10 @@ function renderMercadoExterior(all){
 
   const preciosGrid = document.getElementById('mercadoExtPreciosGrid');
   const baseGrid = document.getElementById('mercadoExtBaseGrid');
+  const resumenRow = document.getElementById('mercadoExtResumenRow');
   preciosGrid.innerHTML = '';
   baseGrid.innerHTML = '';
+  resumenRow.innerHTML = '';
   if (!hasData) return;
 
   const latest = withData[withData.length - 1];
@@ -685,9 +689,7 @@ function renderMercadoExterior(all){
   };
   const routeByMarket = { rosario: 'venta_soja_rosario', desaguadero: 'venta_soja_lima' };
 
-  // "Resumen operaciones" sheet - Costo FCA SCZ Grano / Costo de Maquila,
-  // appended below Desaguadero only in the Soya grano column (both are
-  // Grano-specific figures, not split across Aceite/Solvente).
+  // "Resumen operaciones" sheet - Costo FCA SCZ Grano / Costo de Maquila.
   const resumenData = all.filter(s => s.costos && s.costos.resumen_operaciones);
   const latestResumen = resumenData.length ? resumenData[resumenData.length - 1] : null;
   const resumen = latestResumen ? latestResumen.costos.resumen_operaciones : null;
@@ -726,28 +728,43 @@ function renderMercadoExterior(all){
       }
     });
 
-    if (p.key === 'soya_grano' && resumen) {
-      const resumenDate = latestResumen.date;
-      if (resumen.costo_fca_scz_grano !== undefined) {
-        column.appendChild(buildFobCard(
-          'Costo FCA SCZ', 'Grano',
-          resumen.costo_fca_scz_grano.toFixed(2),
-          `USD/tm · ${resumenDate}`,
-          'var(--costos)'
-        ));
-      }
-      if (resumen.costo_de_maquila !== undefined) {
-        column.appendChild(buildFobCard(
-          'Costo de', 'Maquila',
-          resumen.costo_de_maquila.toFixed(2),
-          `USD/tm · ${resumenDate}`,
-          'var(--costos)'
-        ));
-      }
-    }
-
     preciosGrid.appendChild(column);
   });
+
+  // Costo FCA SCZ Grano / Costo de Maquila: a second row below the main
+  // grid, aligned under the Harina Solvente / Aceite columns (Soya
+  // grano's spot stays blank), rather than stacked inside a column.
+  if (resumen) {
+    const resumenDate = latestResumen.date;
+
+    const blankCol = document.createElement('div');
+    blankCol.className = 'stack-column';
+    resumenRow.appendChild(blankCol);
+
+    const granoCol = document.createElement('div');
+    granoCol.className = 'stack-column';
+    if (resumen.costo_fca_scz_grano !== undefined) {
+      granoCol.appendChild(buildFobCard(
+        'Costo FCA SCZ', 'Grano',
+        resumen.costo_fca_scz_grano.toFixed(2),
+        `USD/tm · ${resumenDate}`,
+        'var(--costos)'
+      ));
+    }
+    resumenRow.appendChild(granoCol);
+
+    const maquilaCol = document.createElement('div');
+    maquilaCol.className = 'stack-column';
+    if (resumen.costo_de_maquila !== undefined) {
+      maquilaCol.appendChild(buildFobCard(
+        'Costo de', 'Maquila',
+        resumen.costo_de_maquila.toFixed(2),
+        `USD/tm · ${resumenDate}`,
+        'var(--costos)'
+      ));
+    }
+    resumenRow.appendChild(maquilaCol);
+  }
 
   const base = mx.base || {};
   MERCADO_EXT_BASES.forEach(b => {
