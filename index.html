@@ -55,6 +55,22 @@
   }
   header h1{font-size:32px;}
   header p{color:var(--text-dim); margin-top:10px; font-size:13px;}
+  .page-nav{
+    display:flex;
+    gap:10px;
+    margin-top:22px;
+  }
+  .page-nav a{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    padding:8px 16px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    text-decoration:none;
+  }
+  .page-nav a:hover{color:var(--text); border-color:var(--text-dim);}
+  .page-nav a.active{background:var(--bg-panel); color:var(--text); border-color:var(--text-dim);}
   main{max-width:1080px; margin:0 auto; padding:0 32px;}
   section{margin-top:0;}
   section:first-of-type{margin-top:40px;}
@@ -346,6 +362,10 @@
   <div class="eyebrow">Reporte de mercado · actualizado periódicamente</div>
   <h1>Precios agropecuarios — Bolivia</h1>
   <p>Costos de venta · maíz, sorgo y harinas · complejo soya FOB · fletes Lima / Arica</p>
+  <nav class="page-nav">
+    <a href="index.html" class="active">Actual</a>
+    <a href="historico.html">Histórico</a>
+  </nav>
 </header>
 
 <main>
@@ -452,7 +472,7 @@
     <h2>Agregar datos manualmente</h2>
     <div class="sub">Use el formulario para registrar nuevos precios. Los datos se sincronizan al panel automáticamente cada hora.</div>
     <div class="entry-card">
-      <a class="entry-cta" href="PASTE_YOUR_GOOGLE_FORM_LINK_HERE" target="_blank" rel="noopener">
+      <a class="entry-cta" href="https://forms.gle/GqhYcpGjx5DVxvRJ9" target="_blank" rel="noopener">
         Abrir formulario de registro →
       </a>
     </div>
