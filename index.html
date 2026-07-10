@@ -63,6 +63,13 @@
     margin-bottom:4px;
   }
   .sub{color:var(--text-dim); font-size:12px; margin-bottom:20px;}
+  .footnote{
+    color:var(--text-dim);
+    font-size:11px;
+    line-height:1.6;
+    margin:20px 0 0;
+    font-style:italic;
+  }
   .group-label{
     display:inline-flex;
     align-items:center;
@@ -237,7 +244,7 @@
     margin-top:6px;
   }
   /* split card body — two subsections side by side under one header,
-     e.g. Mercado Exterior's "Página" value next to its "B.costo" value */
+     e.g. Mercado Exterior's "Fuente" value next to its "Descontado" value */
   .fob-card .fob-card-body.split{
     display:flex;
     padding:0;
@@ -344,6 +351,8 @@
     <div id="mercadoExtBaseGrid" class="stack-grid"></div>
 
     <div id="mercadoExtEmpty" class="empty-state">Aún no hay datos de Mercado Exterior. Se toman de la hoja Mercado Exterior.</div>
+
+    <p class="footnote">*Fuente: precio tomado directamente de la página de referencia correspondiente. Descontado: ese mismo precio, neto de los costos de exportación y transporte aplicables.</p>
 
     <div class="double-line-divider"></div>
     <h2 class="market-title">Venta de soja — mercado Rosario</h2>
@@ -667,7 +676,7 @@ function renderMercadoExterior(all){
   const latest = withData[withData.length - 1];
   const mx = latest.costos.mercado_exterior;
 
-  // Latest snapshot per route, for the "B.costo" / "Costo total transporte" values.
+  // Latest snapshot per route, for the "Descontado" / "Costo total transporte" values.
   const rosarioData = all.filter(s => s.costos && s.costos.venta_soja_rosario);
   const limaData = all.filter(s => s.costos && s.costos.venta_soja_lima);
   const latestByRoute = {
@@ -698,8 +707,8 @@ function renderMercadoExterior(all){
         const bCosto = ventaData && ventaData.fca_scz_montero ? ventaData.fca_scz_montero[ventaProduct] : undefined;
         column.appendChild(buildSplitFobCard(
           p.label, market.label,
-          'Página', pageValue,
-          'B.costo', bCosto !== undefined ? bCosto.toFixed(2) : '—',
+          'Fuente', pageValue,
+          'Descontado', bCosto !== undefined ? bCosto.toFixed(2) : '—',
           market.color
         ));
       } else {
