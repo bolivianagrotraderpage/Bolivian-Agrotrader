@@ -189,6 +189,18 @@
     flex-direction:column;
     gap:14px;
   }
+  /* centered row for standalone cards not tied to the grid's columns
+     (Costo FCA SCZ Grano / Costo de Maquila) — natural card width, just
+     centered as a group rather than stretched into the column layout. */
+  .centered-row{
+    display:flex;
+    justify-content:center;
+    gap:14px;
+    margin-bottom:24px;
+  }
+  .centered-row .fob-card{
+    flex:0 1 220px;
+  }
   @media (max-width:640px){
     .stack-grid{flex-wrap:wrap;}
     .stack-column{flex:1 1 45%;}
@@ -346,7 +358,7 @@
 
     <div id="mercadoExtPreciosGrid" class="stack-grid"></div>
 
-    <div id="mercadoExtResumenRow" class="stack-grid"></div>
+    <div id="mercadoExtResumenRow" class="centered-row"></div>
 
     <div class="subtle-divider"></div>
 
@@ -731,39 +743,26 @@ function renderMercadoExterior(all){
     preciosGrid.appendChild(column);
   });
 
-  // Costo FCA SCZ Grano / Costo de Maquila: a second row below the main
-  // grid, aligned under the Harina Solvente / Aceite columns (Soya
-  // grano's spot stays blank), rather than stacked inside a column.
+  // Costo FCA SCZ Grano / Costo de Maquila: a centered row below the main
+  // grid, not tied to the column layout above.
   if (resumen) {
     const resumenDate = latestResumen.date;
-
-    const blankCol = document.createElement('div');
-    blankCol.className = 'stack-column';
-    resumenRow.appendChild(blankCol);
-
-    const granoCol = document.createElement('div');
-    granoCol.className = 'stack-column';
     if (resumen.costo_fca_scz_grano !== undefined) {
-      granoCol.appendChild(buildFobCard(
+      resumenRow.appendChild(buildFobCard(
         'Costo FCA SCZ', 'Grano',
         resumen.costo_fca_scz_grano.toFixed(2),
         `USD/tm · ${resumenDate}`,
         'var(--costos)'
       ));
     }
-    resumenRow.appendChild(granoCol);
-
-    const maquilaCol = document.createElement('div');
-    maquilaCol.className = 'stack-column';
     if (resumen.costo_de_maquila !== undefined) {
-      maquilaCol.appendChild(buildFobCard(
+      resumenRow.appendChild(buildFobCard(
         'Costo de', 'Maquila',
         resumen.costo_de_maquila.toFixed(2),
         `USD/tm · ${resumenDate}`,
         'var(--costos)'
       ));
     }
-    resumenRow.appendChild(maquilaCol);
   }
 
   const base = mx.base || {};
