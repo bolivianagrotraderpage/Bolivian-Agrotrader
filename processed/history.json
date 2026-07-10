@@ -921,10 +921,20 @@
           "solvente": 247.4,
           "grano": 341.12
         },
+        "costo_exp": {
+          "aceite": 60.91,
+          "solvente": 46.85,
+          "grano": 46.85
+        },
         "fca_scz_montero": {
           "aceite": 986.92,
           "solvente": 200.55,
           "grano": 294.27
+        },
+        "costo_total_transporte": {
+          "aceite": 108.87,
+          "solvente": 86.0,
+          "grano": 106.34
         }
       },
       "venta_soja_lima": {
@@ -934,10 +944,20 @@
           "solvente": 333.04,
           "grano": 409.0
         },
+        "costo_exp": {
+          "aceite": 50.0,
+          "solvente": 50.0,
+          "grano": 50.0
+        },
         "fca_scz_montero": {
           "aceite": 1071.51,
           "solvente": 283.04,
           "grano": 359.0
+        },
+        "costo_total_transporte": {
+          "aceite": 0.0,
+          "solvente": 0.0,
+          "grano": 0.0
         }
       },
       "mercado_exterior": {
