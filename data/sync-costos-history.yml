@@ -1,0 +1,57 @@
+name: Sync costos history
+
+# Runs at 17:00 America/La_Paz (UTC-4, no DST) = 21:00 UTC, every day,
+# after the day's sheet updates are done. Also runnable by hand from
+# the Actions tab (workflow_dispatch) for backfills/testing.
+on:
+  schedule:
+    - cron: "0 21 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write   # needed only for the failure-notification step below
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # No third-party packages needed — the script only uses the
+      # standard library (csv, urllib, pathlib).
+      - name: Run costos history sync
+        id: sync
+        run: python data/sync_costos_history.py
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add processed/costos_history.csv
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Actualiza histórico de costos - $(date -u +'%Y-%m-%d')"
+            git push
+          fi
+
+      # If the sync step fails (bad fetch, empty/malformed sheet), this
+      # opens a GitHub issue instead of failing silently overnight.
+      - name: Open an issue if sync failed
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Costos history sync failed — ${new Date().toISOString().slice(0,10)}`,
+              body: `The scheduled sync from the costos sheets (Rosario/Lima/Mercado Exterior) to \`processed/costos_history.csv\` failed.\n\nCheck the run log: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
