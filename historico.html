@@ -442,6 +442,13 @@ function toYearMonth(d){
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
+function toDayMonthYear(d){
+  const date = parseFlexibleDate(d);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${day}/${month}/${date.getFullYear()}`;
+}
+
 // ---- date period filtering ----------------------------------------------
 // Every chart gets its own 5-way time-range control. Narrower ranges keep
 // the full YYYY-MM-DD date; broader ones truncate to YYYY-MM so the axis
@@ -450,8 +457,8 @@ const DATE_PERIODS = [
   { key: 'yearly',    label: 'Anual',      days: null, format: toYearMonth },
   { key: 'quarterly', label: 'Trimestral', days: 365,  format: toYearMonth },
   { key: 'monthly',   label: 'Mensual',    days: 60,   format: toYearMonth },
-  { key: 'weekly',    label: 'Semanal',    days: 28,   format: d => d },
-  { key: 'daily',     label: 'Diario',     days: 7,    format: d => d },
+  { key: 'weekly',    label: 'Semanal',    days: 28,   format: toDayMonthYear },
+  { key: 'daily',     label: 'Diario',     days: 7,    format: toDayMonthYear },
 ];
 const DEFAULT_PERIOD = 'yearly';
 
