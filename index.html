@@ -6,7 +6,6 @@
 <title>Precios agropecuarios · Bolivia</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   :root{
     --bg: #171B18;
@@ -55,6 +54,22 @@
   }
   header h1{font-size:32px;}
   header p{color:var(--text-dim); margin-top:10px; font-size:13px;}
+  .page-nav{
+    display:flex;
+    gap:10px;
+    margin-top:22px;
+  }
+  .page-nav a{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    padding:8px 16px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    text-decoration:none;
+  }
+  .page-nav a:hover{color:var(--text); border-color:var(--text-dim);}
+  .page-nav a.active{background:var(--bg-panel); color:var(--text); border-color:var(--text-dim);}
   main{max-width:1080px; margin:0 auto; padding:0 32px;}
   section{margin-top:0;}
   section:first-of-type{margin-top:40px;}
@@ -297,6 +312,7 @@
   .section-divider.divider-grain{ --divider-color: var(--grain); }
   .section-divider.divider-soy{ --divider-color: var(--soy); }
   .section-divider.divider-freight{ --divider-color: var(--freight); }
+  .section-divider.divider-costos{ --divider-color: var(--costos); }
 
   /* manual entry module */
   #manual-entry{
@@ -334,6 +350,10 @@
   <div class="eyebrow">Reporte de mercado · actualizado periódicamente</div>
   <h1>Precios agropecuarios — Bolivia</h1>
   <p>Costos de venta · maíz, sorgo y harinas · complejo soya FOB · fletes Lima / Arica</p>
+  <nav class="page-nav">
+    <a href="index.html" class="active">Actual</a>
+    <a href="historico.html">Histórico</a>
+  </nav>
 </header>
 
 <main>
@@ -394,43 +414,9 @@
     <div id="limaEmpty" class="empty-state">Aún no hay datos de costos de Lima. Se toman de la hoja de costos Lima.</div>
   </section>
 
-  <div class="section-divider divider-grain"></div>
+  <div class="section-divider divider-costos"></div>
 
-  <section id="grains-section">
-    <span class="group-label grain">Granos</span>
-    <h2>Maíz, sorgo y harinas</h2>
-    <div class="sub">Cochabamba · Santa Cruz · Anapo</div>
-    <div class="chart-panel">
-      <div id="grainsFilters" class="chart-filters"></div>
-      <canvas id="grainsChart"></canvas>
-      <div id="grainsEmpty" class="empty-state">Aún no hay datos. Agregue un registro con el formulario abajo.</div>
-    </div>
-  </section>
-
-  <div class="section-divider divider-soy"></div>
-
-  <section id="soy-section">
-    <span class="group-label soy">Complejo soya</span>
-    <h2>Soya, aceite y torta — FOB</h2>
-    <div class="sub">Perú · Bolivia · Chicago · Argentina</div>
-    <div class="chart-panel">
-      <div id="soyFilters" class="chart-filters"></div>
-      <canvas id="soyChart"></canvas>
-      <div id="soyEmpty" class="empty-state">Aún no hay datos. Agregue un registro con el formulario abajo.</div>
-    </div>
-  </section>
-
-  <div class="section-divider divider-freight"></div>
-
-  <section id="freight-section">
-    <span class="group-label freight">Fletes</span>
-    <h2>Lima y Arica</h2>
-    <div class="chart-panel">
-      <div id="freightFilters" class="chart-filters"></div>
-      <canvas id="freightChart"></canvas>
-      <div id="freightEmpty" class="empty-state">Aún no hay datos. Agregue un registro con el formulario abajo.</div>
-    </div>
-  </section>
+  <p class="footnote" style="text-align:center; margin:0 0 8px;">Los gráficos históricos de granos, complejo soya, fletes y costos se movieron a la <a href="historico.html" style="color:var(--text-dim);">página de Histórico</a>.</p>
 
   <div class="section-divider"></div>
 
@@ -447,34 +433,7 @@
 </main>
 
 <script>
-// ---- field schema (kept so chart rendering can group price series) ----
-const GRAIN_PRODUCTS = [
-  {key:'maiz', label:'Maíz'},
-  {key:'sorgo', label:'Sorgo'},
-  {key:'harina_integral', label:'H. Integral'},
-  {key:'harina_solvente', label:'H. Solvente'},
-];
-const GRAIN_REGIONS = [
-  {key:'cbba', label:'Cochabamba'},
-  {key:'scz', label:'Santa Cruz'},
-  {key:'anapo', label:'Anapo'},
-];
-const SOY_PRODUCTS = [
-  {key:'soya_fob', label:'Soya FOB'},
-  {key:'aceite_fob', label:'Aceite FOB'},
-  {key:'torta_soya_fob', label:'Torta de soya FOB'},
-];
-const SOY_REGIONS = [
-  {key:'peru', label:'Perú'},
-  {key:'bolivia', label:'Bolivia'},
-  {key:'chicago', label:'Chicago'},
-  {key:'argentina', label:'Argentina'},
-];
-const FREIGHT_ROUTES = [
-  {key:'lima', label:'Lima'},
-  {key:'arica', label:'Arica'},
-];
-
+// ---- field schema (kept so card rendering can group price series) ----
 // "Hoja de costos Rosario" — per-product FOB / FCA cards
 const VENTA_SOJA_PRODUCTS = [
   {key:'grano', label:'Grano', color:'var(--soy)'},
@@ -491,141 +450,17 @@ async function loadHistory(){
   } catch { return []; }
 }
 
-let grainsChart, soyChart, freightChart;
-
-function lineDataset(label, color, points){
-  return {
-    label, data: points, borderColor: color, backgroundColor: color,
-    borderWidth: 2, tension: 0.25, spanGaps: true, pointRadius: 3,
-  };
-}
-
-function baseOptions(){
-  return {
-    responsive: true,
-    animation: false,
-    scales: {
-      x: { ticks: { color: '#9BA192', font: {family:'JetBrains Mono', size: 11} }, grid: { color: '#262B22' } },
-      y: { ticks: { color: '#9BA192', font: {family:'JetBrains Mono', size: 11} }, grid: { color: '#262B22' } },
-    },
-    plugins: {
-      legend: { labels: { color: '#EDEAD4', font: {family:'JetBrains Mono', size: 11}, boxWidth: 12 } },
-    },
-  };
-}
-
 async function renderAllCharts(){
   const history = await loadHistory();
   const all = history.slice().sort((a,b) => a.date.localeCompare(b.date));
-  const labels = all.map(s => s.date);
 
   renderMercadoExterior(all);
   renderVentaSoja(all);
   renderCostosLima(all);
-  renderGrains(all, labels);
-  renderSoy(all, labels);
-  renderFreight(all, labels);
 }
 
 function toggleEmpty(id, hasData){
   document.getElementById(id).style.display = hasData ? 'none' : 'block';
-}
-
-// Builds "Todos" + one chip per dataset. Clicking a chip isolates that
-// line (hides the rest); clicking "Todos" restores all of them.
-function renderFilterChips(containerId, chartGetter, datasets){
-  const container = document.getElementById(containerId);
-  container.innerHTML = '';
-  if (datasets.length < 2) return; // nothing to filter with only one line
-
-  function setActive(btn){
-    container.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-  }
-
-  const allBtn = document.createElement('button');
-  allBtn.type = 'button';
-  allBtn.className = 'filter-chip active';
-  allBtn.textContent = 'Todos';
-  allBtn.addEventListener('click', () => {
-    const chart = chartGetter();
-    chart.data.datasets.forEach(ds => ds.hidden = false);
-    chart.update();
-    setActive(allBtn);
-  });
-  container.appendChild(allBtn);
-
-  datasets.forEach((ds, idx) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'filter-chip';
-    btn.innerHTML = `<span class="chip-dot" style="background:${ds.borderColor}"></span>${ds.label}`;
-    btn.addEventListener('click', () => {
-      const chart = chartGetter();
-      chart.data.datasets.forEach((d, i) => { d.hidden = i !== idx; });
-      chart.update();
-      setActive(btn);
-    });
-    container.appendChild(btn);
-  });
-}
-
-function renderGrains(all, labels){
-  const hasData = all.length > 0;
-  toggleEmpty('grainsEmpty', hasData);
-  document.getElementById('grainsChart').style.display = hasData ? 'block' : 'none';
-  if (!hasData) { document.getElementById('grainsFilters').innerHTML = ''; return; }
-
-  const colors = ['#D9A441', '#C97A3E', '#8B6A2E', '#B99A5F'];
-  const datasets = [];
-  GRAIN_PRODUCTS.forEach((p, i) => {
-    GRAIN_REGIONS.forEach((r, j) => {
-      const points = all.map(s => (s.grains && s.grains[p.key] && s.grains[p.key][r.key] !== undefined) ? s.grains[p.key][r.key] : null);
-      if (points.some(v => v !== null)) {
-        datasets.push(lineDataset(`${p.label} · ${r.label}`, colors[(i*GRAIN_REGIONS.length + j) % colors.length], points));
-      }
-    });
-  });
-  if (grainsChart) grainsChart.destroy();
-  grainsChart = new Chart(document.getElementById('grainsChart'), { type:'line', data:{labels, datasets}, options: baseOptions() });
-  renderFilterChips('grainsFilters', () => grainsChart, datasets);
-}
-
-function renderSoy(all, labels){
-  const hasData = all.length > 0;
-  toggleEmpty('soyEmpty', hasData);
-  document.getElementById('soyChart').style.display = hasData ? 'block' : 'none';
-  if (!hasData) { document.getElementById('soyFilters').innerHTML = ''; return; }
-
-  const colors = ['#8CAE7C', '#6B8F5C', '#4E7A44', '#A9C29B'];
-  const datasets = [];
-  SOY_PRODUCTS.forEach((p, i) => {
-    SOY_REGIONS.forEach((r, j) => {
-      const points = all.map(s => (s.soy_complex && s.soy_complex[p.key] && s.soy_complex[p.key][r.key] !== undefined) ? s.soy_complex[p.key][r.key] : null);
-      if (points.some(v => v !== null)) {
-        datasets.push(lineDataset(`${p.label} · ${r.label}`, colors[(i*SOY_REGIONS.length + j) % colors.length], points));
-      }
-    });
-  });
-  if (soyChart) soyChart.destroy();
-  soyChart = new Chart(document.getElementById('soyChart'), { type:'line', data:{labels, datasets}, options: baseOptions() });
-  renderFilterChips('soyFilters', () => soyChart, datasets);
-}
-
-function renderFreight(all, labels){
-  const hasData = all.length > 0;
-  toggleEmpty('freightEmpty', hasData);
-  document.getElementById('freightChart').style.display = hasData ? 'block' : 'none';
-  if (!hasData) { document.getElementById('freightFilters').innerHTML = ''; return; }
-
-  const colors = ['#7FA6C4', '#5A85A8'];
-  const datasets = FREIGHT_ROUTES.map((r, i) => {
-    const points = all.map(s => (s.freight && s.freight[r.key] !== undefined) ? s.freight[r.key] : null);
-    return lineDataset(r.label, colors[i % colors.length], points);
-  });
-  if (freightChart) freightChart.destroy();
-  freightChart = new Chart(document.getElementById('freightChart'), { type:'line', data:{labels, datasets}, options: baseOptions() });
-  renderFilterChips('freightFilters', () => freightChart, datasets);
 }
 
 const MERCADO_EXT_MARKETS = [
