@@ -477,9 +477,9 @@ const FREIGHT_ROUTES = [
 
 // "Hoja de costos Rosario" — per-product FOB / FCA cards
 const VENTA_SOJA_PRODUCTS = [
-  {key:'aceite', label:'Aceite', color:'var(--grain)'},
-  {key:'solvente', label:'Solvente', color:'var(--freight)'},
   {key:'grano', label:'Grano', color:'var(--soy)'},
+  {key:'solvente', label:'Solvente', color:'var(--freight)'},
+  {key:'aceite', label:'Aceite', color:'var(--grain)'},
 ];
 
 // ---- charts -----------------------------------------------------------
@@ -629,8 +629,8 @@ function renderFreight(all, labels){
 }
 
 const MERCADO_EXT_MARKETS = [
-  {key:'rosario', label:'Rosario', color:'var(--costos)'},
   {key:'chicago', label:'Chicago', color:'var(--freight)'},
+  {key:'rosario', label:'Rosario', color:'var(--costos)'},
   {key:'desaguadero', label:'Desaguadero', color:'var(--grain)'},
 ];
 const MERCADO_EXT_PRODUCTS = [
