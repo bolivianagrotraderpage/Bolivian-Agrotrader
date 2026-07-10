@@ -97,6 +97,9 @@ COSTOS_PRODUCTO_ROW_LABELS = {
     "fob desaguadero": "fob_desaguadero",
     "fca scz (montero)": "fca_scz_montero",
     "fca scz montero": "fca_scz_montero",
+    # "Total costo de exportación" line, shown per product. Used as the
+    # second value on the Mercado Exterior "base" squares.
+    "costo exp": "costo_exp",
 }
 # Column header (normalized) -> product key
 COSTOS_PRODUCTO_COLUMNS = {
@@ -121,8 +124,8 @@ COSTOS_SCALAR_ROW_LABELS = {
 # for the "expected but missing" diagnostic below. New sheets not listed
 # here fall back to checking against every known key.
 COSTOS_SHEET_EXPECTED_KEYS = {
-    "venta_soja_rosario": {"fob_pto_aguirre", "fca_scz_montero", "costo_g_industrial"},
-    "venta_soja_lima": {"fob_desaguadero", "fca_scz_montero", "costo_g_industrial"},
+    "venta_soja_rosario": {"fob_pto_aguirre", "fca_scz_montero", "costo_g_industrial", "costo_exp", "costo_total_transporte"},
+    "venta_soja_lima": {"fob_desaguadero", "fca_scz_montero", "costo_g_industrial", "costo_exp", "costo_total_transporte"},
     "mercado_exterior": {"precios", "base"},
 }
 
@@ -258,7 +261,54 @@ def parse_costos_sheet_csv(csv_text: str) -> dict:
         if values:
             result[key] = values
 
+    # --- "Costo total transporte" side-block ---
+    # A different layout than everything else: the label sits in one row,
+    # one column to the LEFT of a product-name column, with the value one
+    # column further right (product_col = label_col+1, value_col =
+    # label_col+2). The product/value rows can appear before, on, or after
+    # the label's own row (varies between sheets), so scan a small window
+    # around wherever the label was found instead of assuming an exact
+    # row offset. Used as the second value on the Mercado Exterior "base"
+    # squares.
+    transporte = _extract_costo_total_transporte(rows)
+    if transporte:
+        result["costo_total_transporte"] = transporte
+
     return result
+
+
+def _extract_costo_total_transporte(rows: list) -> dict:
+    label_row_idx = None
+    label_col_idx = None
+    for i, row in enumerate(rows):
+        for j, cell in enumerate(row):
+            if _normalize(cell) == "costo total transporte":
+                label_row_idx, label_col_idx = i, j
+                break
+        if label_row_idx is not None:
+            break
+
+    if label_row_idx is None:
+        return {}
+
+    product_col = label_col_idx + 1
+    value_col = label_col_idx + 2
+
+    values = {}
+    window_start = max(0, label_row_idx - 2)
+    window_end = min(len(rows), label_row_idx + 3)
+    for row in rows[window_start:window_end]:
+        if product_col >= len(row):
+            continue
+        norm = _normalize(row[product_col])
+        if norm not in COSTOS_PRODUCTO_COLUMNS:
+            continue
+        if value_col < len(row):
+            val = to_float(row[value_col])
+            if val is not None:
+                values[COSTOS_PRODUCTO_COLUMNS[norm]] = val
+
+    return values
 
 
 # --- "Mercado Exterior" sheet: two small tables with an inverted layout
