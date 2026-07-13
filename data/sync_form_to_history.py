@@ -57,6 +57,12 @@ COSTOS_SHEETS = {
     # sheet (see parse_recepcion_datos_csv); feeds the Min/Max footer on
     # the FOB Desaguadero cards.
     "recepcion_datos": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ39PJM93JRVCt38Ryr_xBQbiDNEGzreH5ydhtmVF3w3ZI3oVHLZBiFtyKmmd3pPHhK4mAOVkW1tvti/pub?gid=33564003&single=true&output=csv",
+    # tab: "Hoja de costos" - same sheet the price calculator page reads
+    # live in the browser; synced here too so the Mercado Exterior
+    # section's "Costo FCA SCZ Grano" / "Costo de Maquila" cards on the
+    # main dashboard have something to show (see
+    # parse_resumen_operaciones_csv).
+    "resumen_operaciones": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRHmO9eaO2vX_29kL7pp80l9exAdrPXz4sW66PS8yLy_81LLNjUgZtpzkAV6rFvSQ/pub?gid=633943559&single=true&output=csv",
 }
 
 # Google Form question titles -> (group, product, region)
@@ -134,6 +140,7 @@ COSTOS_SHEET_EXPECTED_KEYS = {
     "venta_soja_lima": {"fob_desaguadero", "fca_scz_montero", "costo_g_industrial", "costo_exp", "costo_total_transporte"},
     "mercado_exterior": {"precios", "base"},
     "recepcion_datos": {"min", "max"},
+    "resumen_operaciones": {"costo_fca_scz_grano", "costo_de_maquila"},
 }
 
 
@@ -173,9 +180,21 @@ def fetch_csv(url: str, required_marker: str | None = None) -> str | None:
 
 
 def to_float(v):
-    v = (v or "").strip().replace(",", "")
+    """Handles both number formats seen across these sheets: standard
+    '1234.56' and Spanish-locale '1.234,56' / '335,19' (period as
+    thousands separator, comma as decimal). Whichever separator appears
+    LAST is the decimal point; a comma with no dot at all is treated as
+    the decimal separator (matches sheets like 'Hoja de costos', which
+    write plain values as '335,19' rather than '335.19')."""
+    v = (v or "").strip()
     if v == "":
         return None
+    has_comma = "," in v
+    has_dot = "." in v
+    if has_comma and has_dot:
+        v = v.replace(".", "").replace(",", ".") if v.rfind(",") > v.rfind(".") else v.replace(",", "")
+    elif has_comma:
+        v = v.replace(",", ".")
     try:
         return float(v)
     except ValueError:
@@ -495,11 +514,46 @@ def parse_recepcion_datos_csv(csv_text: str) -> dict:
     return {k: v for k, v in result.items() if v}
 
 
+# "Hoja de costos" sheet's two summary scalars, each a label in one cell
+# with its value in the next numeric cell to the right, wherever they
+# sit in the sheet (same "Costo FCA SCZ GRANO" / "Costo de Maquila" rows
+# the price calculator reads live).
+RESUMEN_OPERACIONES_SCALAR_LABELS = {
+    "costo fca scz grano": "costo_fca_scz_grano",
+    "costo de maquila": "costo_de_maquila",
+}
+
+
+def parse_resumen_operaciones_csv(csv_text: str) -> dict:
+    """Parses the 'Hoja de costos' sheet's Costo FCA SCZ GRANO / Costo de
+    Maquila scalars, for the Mercado Exterior section's summary cards.
+    Values are read as-is; nothing is computed here."""
+    rows = list(csv.reader(StringIO(csv_text)))
+    result = {}
+    for row in rows:
+        if not row:
+            continue
+        for j, cell in enumerate(row):
+            norm = _normalize(cell)
+            if not norm:
+                continue
+            for phrase, key in RESUMEN_OPERACIONES_SCALAR_LABELS.items():
+                if phrase in norm and key not in result:
+                    for later_cell in row[j + 1:]:
+                        val = to_float(later_cell)
+                        if val is not None:
+                            result[key] = val
+                            break
+                    break
+    return result
+
+
 # Which parser handles which COSTOS_SHEETS entry. Anything not listed
 # falls back to parse_costos_sheet_csv (the Aceite/Solvente/Grano layout).
 COSTOS_SHEET_PARSERS = {
     "mercado_exterior": parse_mercado_exterior_csv,
     "recepcion_datos": parse_recepcion_datos_csv,
+    "resumen_operaciones": parse_resumen_operaciones_csv,
 }
 
 
