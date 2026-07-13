@@ -525,6 +525,28 @@ async function loadHistory(){
   } catch { return []; }
 }
 
+// The "date" field mixes two formats depending on its source: ISO
+// "YYYY-MM-DD" (from the costos sync script) and "DD/MM/YYYY" (from the
+// Google Form's "Fecha" column). Every displayed date is normalized to
+// DD/MM/YY regardless of which format it originally came in as.
+function parseFlexibleDate(d){
+  if (/^\d{4}-\d{2}-\d{2}/.test(d)) {
+    const [y, m, day] = d.split('-').map(Number);
+    return new Date(y, m - 1, day);
+  }
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(d);
+  if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  return new Date(d);
+}
+
+function toDayMonthYY(d){
+  const date = parseFlexibleDate(d);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = String(date.getFullYear()).slice(-2);
+  return `${day}/${month}/${year}`;
+}
+
 let grainsChart, soyChart, freightChart;
 
 function lineDataset(label, color, points){
@@ -754,7 +776,7 @@ function renderMercadoExterior(all){
       } else {
         column.appendChild(buildFobCard(
           p.label, market.label, pageValue,
-          val !== undefined ? `USD/tm · ${latest.date}` : 'sin dato',
+          val !== undefined ? `USD/tm · ${toDayMonthYY(latest.date)}` : 'sin dato',
           market.color
         ));
       }
@@ -766,7 +788,7 @@ function renderMercadoExterior(all){
   // Costo FCA SCZ Grano / Costo de Maquila: a centered row below the main
   // grid, not tied to the column layout above.
   if (resumen) {
-    const resumenDate = latestResumen.date;
+    const resumenDate = toDayMonthYY(latestResumen.date);
     if (resumen.costo_fca_scz_grano !== undefined) {
       resumenRow.appendChild(buildFobCard(
         'Costo FCA SCZ', 'Grano',
@@ -872,13 +894,14 @@ function renderVentaSojaSection(containerId, metricLabel, values, costoGIndustri
   const grid = document.getElementById(containerId);
   grid.innerHTML = '';
   if (!values) return;
+  const displayDate = toDayMonthYY(date);
 
   VENTA_SOJA_PRODUCTS.forEach(p => {
     const val = values[p.key];
     grid.appendChild(buildFobCard(
       metricLabel, p.label,
       val !== undefined ? val.toFixed(2) : '—',
-      val !== undefined ? `USD/tm · ${date}` : 'sin dato',
+      val !== undefined ? `USD/tm · ${displayDate}` : 'sin dato',
       p.color
     ));
   });
@@ -890,7 +913,7 @@ function renderVentaSojaSection(containerId, metricLabel, values, costoGIndustri
   grid.appendChild(buildFobCard(
     'Costo de', 'G industrial',
     costoDisplay,
-    costoDisplay === '—' ? 'por definir' : `USD/tm · ${date}`,
+    costoDisplay === '—' ? 'por definir' : `USD/tm · ${displayDate}`,
     'var(--costos)', 'span-2'
   ));
 
