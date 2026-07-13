@@ -343,11 +343,28 @@ function normalize(s){
 }
 
 // Treats "", "-", and error strings like "#DIV/0!" as no-data.
+// Handles both number formats that show up across these sheets:
+// standard "1234.56" and Spanish-locale "1.234,56" / "335,19" (period as
+// thousands separator, comma as decimal). Whichever separator appears
+// LAST is the decimal point; if only a comma is present, it's treated
+// as the decimal separator (matches this sheet's "335,19" style, not
+// "4,255" thousands-style, which doesn't appear here).
 function toFloat(v){
   if (v === undefined || v === null) return null;
-  const cleaned = v.trim();
+  let cleaned = v.trim();
   if (cleaned === '' || cleaned === '-' || cleaned.startsWith('#')) return null;
-  const n = parseFloat(cleaned.replace(/,/g, ''));
+
+  const hasComma = cleaned.includes(',');
+  const hasDot = cleaned.includes('.');
+  if (hasComma && hasDot) {
+    cleaned = cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')
+      ? cleaned.replace(/\./g, '').replace(',', '.')  // "1.234,56" -> "1234.56"
+      : cleaned.replace(/,/g, '');                     // "1,234.56" -> "1234.56"
+  } else if (hasComma) {
+    cleaned = cleaned.replace(',', '.');                // "335,19" -> "335.19"
+  }
+
+  const n = parseFloat(cleaned);
   return Number.isNaN(n) ? null : n;
 }
 
