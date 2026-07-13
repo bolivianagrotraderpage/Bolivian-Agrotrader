@@ -267,6 +267,11 @@
           <option value="">Selecciona un silo…</option>
         </select>
       </div>
+
+      <div class="field" id="fleteManualField">
+        <label for="fleteManualInput">Costo de flete (USD/Tn)</label>
+        <input type="number" id="fleteManualInput" min="0" max="100" step="0.01" placeholder="Ej. 15">
+      </div>
     </div>
 
     <div class="result-card">
@@ -287,7 +292,7 @@
           <span id="breakdownBase">—</span>
         </div>
         <div class="breakdown-row" id="breakdownFleteRow" style="display:none;">
-          <span>Flete del silo</span>
+          <span>Flete</span>
           <span id="breakdownFlete">—</span>
         </div>
         <div class="breakdown-row total">
@@ -446,6 +451,8 @@ const siloSiBtn = document.getElementById('siloSiBtn');
 const siloNoBtn = document.getElementById('siloNoBtn');
 const siloSelectField = document.getElementById('siloSelectField');
 const siloSelect = document.getElementById('siloSelect');
+const fleteManualField = document.getElementById('fleteManualField');
+const fleteManualInput = document.getElementById('fleteManualInput');
 const statusBanner = document.getElementById('statusBanner');
 
 function fmt(n, decimals = 2){
@@ -458,11 +465,13 @@ function setSiloMode(toSi){
   siloSiBtn.classList.toggle('active', toSi);
   siloNoBtn.classList.toggle('active', !toSi);
   siloSelectField.style.display = toSi ? 'block' : 'none';
+  fleteManualField.style.display = toSi ? 'none' : 'block';
   recalculate();
 }
 siloSiBtn.addEventListener('click', () => setSiloMode(true));
 siloNoBtn.addEventListener('click', () => setSiloMode(false));
 siloSelect.addEventListener('change', recalculate);
+fleteManualInput.addEventListener('input', recalculate);
 volumenInput.addEventListener('input', recalculate);
 precioInput.addEventListener('input', recalculate);
 
@@ -478,7 +487,7 @@ function populateSiloDropdown(){
 }
 
 // Yes -> Costo FCA SCZ Grano minus the selected silo's Flete.
-// No  -> the full Costo FCA SCZ Grano, unchanged.
+// No  -> Costo FCA SCZ Grano minus a manually entered Costo de flete (0-100).
 // Margen = Precio ofrecido - Costo de referencia (positive = rentable:
 // the offered price is above what the grain would cost delivered FCA SCZ).
 function recalculate(){
@@ -496,13 +505,22 @@ function recalculate(){
   breakdownBase.textContent = hojaCostos.costoFcaSczGrano !== null ? `${fmt(hojaCostos.costoFcaSczGrano)} USD/Tn` : 'sin dato';
 
   let selectedSilo = null;
-  if (enSilo && siloSelect.value !== '') selectedSilo = hojaCostos.silos[Number(siloSelect.value)];
-  breakdownFleteRow.style.display = enSilo ? 'flex' : 'none';
-  breakdownFlete.textContent = selectedSilo && selectedSilo.flete !== null ? `- ${fmt(selectedSilo.flete)} USD/Tn` : '—';
+  let fleteManual = null;
+  if (enSilo) {
+    if (siloSelect.value !== '') selectedSilo = hojaCostos.silos[Number(siloSelect.value)];
+  } else {
+    const raw = parseFloat(fleteManualInput.value);
+    if (!Number.isNaN(raw) && raw >= 0 && raw <= 100) fleteManual = raw;
+  }
+  const fleteAplicado = enSilo ? (selectedSilo ? selectedSilo.flete : null) : fleteManual;
+
+  breakdownFleteRow.style.display = 'flex';
+  breakdownFlete.textContent = fleteAplicado !== null ? `- ${fmt(fleteAplicado)} USD/Tn` : '—';
 
   const missingReasons = [];
   if (hojaCostos.costoFcaSczGrano === null) missingReasons.push('sin dato de Costo FCA SCZ Grano');
   if (enSilo && !selectedSilo) missingReasons.push('selecciona un silo');
+  if (!enSilo && fleteManual === null) missingReasons.push('ingresa el costo de flete (0-100)');
   if (Number.isNaN(volumen) || volumen <= 0) missingReasons.push('ingresa el volumen');
   if (Number.isNaN(precio) || precio <= 0) missingReasons.push('ingresa el precio ofrecido');
 
@@ -511,14 +529,14 @@ function recalculate(){
     badge.textContent = 'Completa los datos';
     marginEl.textContent = '—'; marginEl.className = 'value';
     totalEl.textContent = '—'; totalEl.className = 'value';
-    breakdownRef.textContent = hojaCostos.costoFcaSczGrano !== null
-      ? `${fmt(enSilo && selectedSilo ? hojaCostos.costoFcaSczGrano - selectedSilo.flete : hojaCostos.costoFcaSczGrano)} USD/Tn`
-      : '—';
+    breakdownRef.textContent = (hojaCostos.costoFcaSczGrano !== null && fleteAplicado !== null)
+      ? `${fmt(hojaCostos.costoFcaSczGrano - fleteAplicado)} USD/Tn`
+      : (hojaCostos.costoFcaSczGrano !== null ? `${fmt(hojaCostos.costoFcaSczGrano)} USD/Tn` : '—');
     breakdownPrecio.textContent = !Number.isNaN(precio) ? `${fmt(precio)} USD/Tn` : '—';
     return;
   }
 
-  const referencia = enSilo ? (hojaCostos.costoFcaSczGrano - selectedSilo.flete) : hojaCostos.costoFcaSczGrano;
+  const referencia = hojaCostos.costoFcaSczGrano - fleteAplicado;
   const margen = precio - referencia;
   const gananciaTotal = margen * volumen;
   const rentable = margen > 0;
