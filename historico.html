@@ -481,11 +481,12 @@ function toYearMonth(d){
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function toDayMonthYear(d){
+function toDayMonthYY(d){
   const date = parseFlexibleDate(d);
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
-  return `${day}/${month}/${date.getFullYear()}`;
+  const year = String(date.getFullYear()).slice(-2);
+  return `${day}/${month}/${year}`;
 }
 
 // ---- date period filtering ----------------------------------------------
@@ -496,8 +497,8 @@ const DATE_PERIODS = [
   { key: 'yearly',    label: 'Anual',      days: null, format: toYearMonth },
   { key: 'quarterly', label: 'Trimestral', days: 365,  format: toYearMonth },
   { key: 'monthly',   label: 'Mensual',    days: 60,   format: toYearMonth },
-  { key: 'weekly',    label: 'Semanal',    days: 28,   format: toDayMonthYear },
-  { key: 'daily',     label: 'Diario',     days: 7,    format: toDayMonthYear },
+  { key: 'weekly',    label: 'Semanal',    days: 28,   format: toDayMonthYY },
+  { key: 'daily',     label: 'Diario',     days: 7,    format: toDayMonthYY },
 ];
 const DEFAULT_PERIOD = 'yearly';
 
