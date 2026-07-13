@@ -915,11 +915,11 @@
     "freight": {},
     "costos": {
       "venta_soja_rosario": {
-        "costo_g_industrial": 285.99,
+        "costo_g_industrial": 289.46,
         "fob_pto_aguirre": {
-          "aceite": 1047.83,
-          "solvente": 247.4,
-          "grano": 341.12
+          "aceite": 1043.04,
+          "solvente": 253.28,
+          "grano": 370.27
         },
         "costo_exp": {
           "aceite": 60.91,
@@ -927,14 +927,14 @@
           "grano": 46.85
         },
         "fca_scz_montero": {
-          "aceite": 986.92,
-          "solvente": 200.55,
-          "grano": 294.27
+          "aceite": 982.14,
+          "solvente": 206.43,
+          "grano": 323.42
         },
         "costo_total_transporte": {
-          "aceite": 108.87,
-          "solvente": 86.0,
-          "grano": 106.34
+          "aceite": 108.86,
+          "solvente": 86.02,
+          "grano": 106.43
         }
       },
       "venta_soja_lima": {
@@ -963,14 +963,14 @@
       "mercado_exterior": {
         "precios": {
           "rosario": {
-            "soya_grano": 447.46,
-            "harina_solvente": 333.4,
-            "aceite": 1156.7
+            "soya_grano": 476.704,
+            "harina_solvente": 339.3,
+            "aceite": 1151.9
           },
           "chicago": {
-            "soya_grano": 438.097,
-            "harina_solvente": 344.248,
-            "aceite": 1561.975
+            "soya_grano": 439.567,
+            "harina_solvente": 351.193,
+            "aceite": 1584.462
           },
           "desaguadero": {
             "soya_grano": 409.0,
@@ -980,14 +980,14 @@
         },
         "base": {
           "rosario_chicago": {
-            "soya_grano": 9.363,
-            "harina_solvente": -10.848,
-            "aceite": -405.27
+            "soya_grano": 37.137,
+            "harina_solvente": -11.893,
+            "aceite": -432.56
           },
           "desaguadero_chicago": {
-            "soya_grano": -29.1,
-            "harina_solvente": -11.21,
-            "aceite": -440.46
+            "soya_grano": -30.57,
+            "harina_solvente": -18.15,
+            "aceite": -462.95
           }
         }
       },
