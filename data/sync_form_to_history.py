@@ -30,6 +30,7 @@ as the placeholder to skip that source without breaking the sync.
 import csv
 import json
 import sys
+import unicodedata
 import urllib.request
 from datetime import date
 from io import StringIO
@@ -51,11 +52,11 @@ COSTOS_SHEETS = {
     "venta_soja_lima": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ39PJM93JRVCt38Ryr_xBQbiDNEGzreH5ydhtmVF3w3ZI3oVHLZBiFtyKmmd3pPHhK4mAOVkW1tvti/pub?gid=1317820090&single=true&output=csv",
     # tab: "MercadoExterior"
     "mercado_exterior": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ39PJM93JRVCt38Ryr_xBQbiDNEGzreH5ydhtmVF3w3ZI3oVHLZBiFtyKmmd3pPHhK4mAOVkW1tvti/pub?gid=1352820681&single=true&output=csv",
-    # tab: "Resumen operaciones" (separate spreadsheet: "Hoja de costos.xlsx").
-    # Converted from the pubhtml link you shared to the CSV-export form used
-    # everywhere else on this page - double check this resolves correctly
-    # once published, since I couldn't fetch it directly to verify.
-    "resumen_operaciones": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRHmO9eaO2vX_29kL7pp80l9exAdrPXz4sW66PS8yLy_81LLNjUgZtpzkAV6rFvSQ/pub?gid=633943559&single=true&output=csv",
+    # tab: "Construcción de costos de venta (Recepción de datos)" - only
+    # the Máximo/Mínimo precio ... Desaguadero rows are used from this
+    # sheet (see parse_recepcion_datos_csv); feeds the Min/Max footer on
+    # the FOB Desaguadero cards.
+    "recepcion_datos": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ39PJM93JRVCt38Ryr_xBQbiDNEGzreH5ydhtmVF3w3ZI3oVHLZBiFtyKmmd3pPHhK4mAOVkW1tvti/pub?gid=33564003&single=true&output=csv",
 }
 
 # Google Form question titles -> (group, product, region)
@@ -132,12 +133,20 @@ COSTOS_SHEET_EXPECTED_KEYS = {
     "venta_soja_rosario": {"fob_pto_aguirre", "fca_scz_montero", "costo_g_industrial", "costo_exp", "costo_total_transporte"},
     "venta_soja_lima": {"fob_desaguadero", "fca_scz_montero", "costo_g_industrial", "costo_exp", "costo_total_transporte"},
     "mercado_exterior": {"precios", "base"},
-    "resumen_operaciones": {"costo_fca_scz_grano", "costo_de_maquila"},
+    "recepcion_datos": {"min", "max"},
 }
 
 
 def _normalize(s: str) -> str:
     return " ".join(s.strip().lower().split())
+
+
+def _normalize_ascii(s: str) -> str:
+    """_normalize, plus stripping accents - e.g. 'Máximo'/'Mínimo' both
+    match their unaccented spellings, since the sheet isn't consistent
+    about which one it uses."""
+    norm = _normalize(s)
+    return "".join(c for c in unicodedata.normalize("NFKD", norm) if not unicodedata.combining(c))
 
 
 def fetch_csv(url: str, required_marker: str | None = None) -> str | None:
@@ -167,21 +176,6 @@ def to_float(v):
     v = (v or "").strip().replace(",", "")
     if v == "":
         return None
-    try:
-        return float(v)
-    except ValueError:
-        return None
-
-
-def to_float_es(v):
-    """Like to_float, but for sheets using Spanish/Bolivian locale number
-    formatting (comma decimal, period thousands - e.g. '20.234,98' or
-    '337,65'), the opposite of every other sheet fetched here. Only used
-    for the 'Resumen operaciones' sheet."""
-    v = (v or "").strip()
-    if v in ("", "-"):
-        return None
-    v = v.replace(".", "").replace(",", ".")
     try:
         return float(v)
     except ValueError:
@@ -451,43 +445,61 @@ def parse_mercado_exterior_csv(csv_text: str) -> dict:
     return result
 
 
-# --- "Resumen operaciones" sheet (separate spreadsheet: silo cost roll-up) ---
-# Label (normalized) -> key in costos.resumen_operaciones. Only these two
-# scalar rows are pulled; the per-silo breakdown and the harina/aceite
-# yield table further down the sheet are ignored.
-RESUMEN_OPERACIONES_LABELS = {
-    "costo fca scz grano": "costo_fca_scz_grano",
-    "costo de maquila": "costo_de_maquila",
+# "Construcción de costos de venta (Recepción de datos)" sheet: only the
+# Máximo/Mínimo precio <producto> Desaguadero rows are used here (the
+# sheet has many other unrelated rows, e.g. fletes, mercado prices - all
+# ignored). "soja" in the sheet maps to "grano" everywhere else in this
+# codebase. Row label -> (bound, product key).
+RECEPCION_DATOS_ROW_LABELS = {
+    "maximo precio soja desaguadero": ("max", "grano"),
+    "maximo precio solvente desaguadero": ("max", "solvente"),
+    "maximo precio aceite desaguadero": ("max", "aceite"),
+    "minimo precio soja desaguadero": ("min", "grano"),
+    "minimo precio solvente desaguadero": ("min", "solvente"),
+    "minimo precio aceite desaguadero": ("min", "aceite"),
 }
 
 
-def parse_resumen_operaciones_csv(csv_text: str) -> dict:
-    """Parses the 'Resumen operaciones' sheet. Unlike every other sheet
-    fetched here, this one uses Spanish/Bolivian locale number formatting
-    (comma decimal, period thousands), so it uses to_float_es instead of
-    the shared to_float. Values are read as-is; nothing is computed here."""
+def parse_recepcion_datos_csv(csv_text: str) -> dict:
+    """Scans every row for the six Máximo/Mínimo precio ... Desaguadero
+    labels (wherever they sit - no fixed row/column) and takes the first
+    numeric cell to their right as that label's value. Feeds the Min/Max
+    footer shown on the FOB Desaguadero cards. Values are read as-is;
+    nothing is computed here."""
     rows = list(csv.reader(StringIO(csv_text)))
-    result = {}
+    result = {"min": {}, "max": {}}
+
     for row in rows:
         if not row:
             continue
+        matched = None
+        matched_j = None
         for j, cell in enumerate(row):
-            norm = _normalize(cell)
-            if norm in RESUMEN_OPERACIONES_LABELS:
-                key = RESUMEN_OPERACIONES_LABELS[norm]
-                if j + 1 < len(row):
-                    val = to_float_es(row[j + 1])
-                    if val is not None:
-                        result[key] = val
+            norm = _normalize_ascii(cell)
+            if not norm:
+                continue
+            if norm in RECEPCION_DATOS_ROW_LABELS:
+                matched = RECEPCION_DATOS_ROW_LABELS[norm]
+                matched_j = j
                 break
-    return result
+        if not matched:
+            continue
+        bound, product = matched
+        for later_cell in row[matched_j + 1:]:
+            val = to_float(later_cell)
+            if val is not None:
+                result[bound][product] = val
+                break
+
+    # Drop empty min/max dicts so callers can treat {} as "no data".
+    return {k: v for k, v in result.items() if v}
 
 
 # Which parser handles which COSTOS_SHEETS entry. Anything not listed
 # falls back to parse_costos_sheet_csv (the Aceite/Solvente/Grano layout).
 COSTOS_SHEET_PARSERS = {
     "mercado_exterior": parse_mercado_exterior_csv,
-    "resumen_operaciones": parse_resumen_operaciones_csv,
+    "recepcion_datos": parse_recepcion_datos_csv,
 }
 
 
