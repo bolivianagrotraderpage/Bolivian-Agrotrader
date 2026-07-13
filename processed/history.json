@@ -919,7 +919,7 @@
         "fob_pto_aguirre": {
           "aceite": 1043.04,
           "solvente": 253.28,
-          "grano": 370.27
+          "grano": 339.09
         },
         "costo_exp": {
           "aceite": 60.91,
@@ -929,20 +929,20 @@
         "fca_scz_montero": {
           "aceite": 982.14,
           "solvente": 206.43,
-          "grano": 323.42
+          "grano": 292.24
         },
         "costo_total_transporte": {
           "aceite": 108.86,
           "solvente": 86.02,
-          "grano": 106.43
+          "grano": 106.34
         }
       },
       "venta_soja_lima": {
-        "costo_g_industrial": 362.68,
+        "costo_g_industrial": 378.68,
         "fob_desaguadero": {
-          "aceite": 1121.51,
-          "solvente": 333.04,
-          "grano": 409.0
+          "aceite": 1172.63,
+          "solvente": 341.88,
+          "grano": 410.15
         },
         "costo_exp": {
           "aceite": 50.0,
@@ -950,9 +950,9 @@
           "grano": 50.0
         },
         "fca_scz_montero": {
-          "aceite": 1071.51,
-          "solvente": 283.04,
-          "grano": 359.0
+          "aceite": 1122.63,
+          "solvente": 291.88,
+          "grano": 360.15
         },
         "costo_total_transporte": {
           "aceite": 0.0,
@@ -963,7 +963,7 @@
       "mercado_exterior": {
         "precios": {
           "rosario": {
-            "soya_grano": 476.704,
+            "soya_grano": 445.43,
             "harina_solvente": 339.3,
             "aceite": 1151.9
           },
@@ -973,27 +973,35 @@
             "aceite": 1584.462
           },
           "desaguadero": {
-            "soya_grano": 409.0,
-            "harina_solvente": 333.04,
-            "aceite": 1121.51
+            "soya_grano": 410.15,
+            "harina_solvente": 341.88,
+            "aceite": 1172.63
           }
         },
         "base": {
           "rosario_chicago": {
-            "soya_grano": 37.137,
+            "soya_grano": 5.863,
             "harina_solvente": -11.893,
             "aceite": -432.56
           },
           "desaguadero_chicago": {
-            "soya_grano": -30.57,
-            "harina_solvente": -18.15,
-            "aceite": -462.95
+            "soya_grano": -29.42,
+            "harina_solvente": -9.31,
+            "aceite": -411.83
           }
         }
       },
-      "resumen_operaciones": {
-        "costo_fca_scz_grano": 304.33,
-        "costo_de_maquila": 45.0
+      "recepcion_datos": {
+        "min": {
+          "grano": 404.99,
+          "solvente": 328.0,
+          "aceite": 920.0
+        },
+        "max": {
+          "grano": 419.66,
+          "solvente": 365.55,
+          "aceite": 1253.65
+        }
       }
     }
   },
