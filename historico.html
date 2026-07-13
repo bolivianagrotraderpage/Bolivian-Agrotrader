@@ -421,6 +421,45 @@ async function loadHistory(){
   } catch { return []; }
 }
 
+// costos_history.csv is a separate, permanent daily archive (written by
+// sync_costos_history.py) for Mercado Exterior / Rosario / Desaguadero —
+// unlike history.json, it never loses a previous day's values when the
+// hourly form sync rebuilds history.json from scratch. Rows are
+// "date,route,path,value" (long/tidy format); this reconstructs each
+// date into the same nested {costos: {route: {...}}} shape the chart
+// functions already expect, so nothing downstream needs to change.
+function setNestedPath(obj, path, value){
+  const parts = path.split('.');
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++){
+    cur[parts[i]] = cur[parts[i]] || {};
+    cur = cur[parts[i]];
+  }
+  cur[parts[parts.length - 1]] = value;
+}
+
+async function loadCostosHistory(){
+  try {
+    const res = await fetch('processed/costos_history.csv', {cache:'no-store'});
+    if (!res.ok) return [];
+    const text = await res.text();
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) return []; // header only / empty
+
+    const byDate = {};
+    for (const line of lines.slice(1)){
+      if (!line.trim()) continue;
+      const [date, route, path, rawValue] = line.split(',');
+      const value = parseFloat(rawValue);
+      if (!date || !route || !path || Number.isNaN(value)) continue;
+      byDate[date] = byDate[date] || { date, costos: {} };
+      byDate[date].costos[route] = byDate[date].costos[route] || {};
+      setNestedPath(byDate[date].costos[route], path, value);
+    }
+    return Object.values(byDate);
+  } catch { return []; }
+}
+
 const chartInstances = {};
 
 // The "date" field mixes two formats: ISO "YYYY-MM-DD" (written by
@@ -633,13 +672,20 @@ function renderGroupedFilterChips(containerId, chartGetter, groups){
 
 // ---- render everything --------------------------------------------------
 async function renderAll(){
-  const history = await loadHistory();
+  const [history, costosHistory] = await Promise.all([loadHistory(), loadCostosHistory()]);
+
   const all = history.slice().sort((a,b) => parseFlexibleDate(a.date) - parseFlexibleDate(b.date));
   const labels = all.map(s => s.date);
 
-  renderMercadoExteriorCharts(all, labels);
-  renderVentaSojaCharts(all, labels, 'rosarioChart', 'rosarioFilters', 'rosarioPeriod', 'rosarioChartsEmpty', 'venta_soja_rosario', 'fob_pto_aguirre', 'FOB Pto Aguirre', 'ros');
-  renderVentaSojaCharts(all, labels, 'limaChart', 'limaFilters', 'limaPeriod', 'limaChartsEmpty', 'venta_soja_lima', 'fob_desaguadero', 'FOB Desaguadero', 'lima');
+  // Mercado Exterior / Rosario / Desaguadero read from the permanent
+  // costos archive (costos_history.csv) instead of history.json, since
+  // that's the source that actually keeps every day's values.
+  const costosAll = costosHistory.slice().sort((a,b) => parseFlexibleDate(a.date) - parseFlexibleDate(b.date));
+  const costosLabels = costosAll.map(s => s.date);
+
+  renderMercadoExteriorCharts(costosAll, costosLabels);
+  renderVentaSojaCharts(costosAll, costosLabels, 'rosarioChart', 'rosarioFilters', 'rosarioPeriod', 'rosarioChartsEmpty', 'venta_soja_rosario', 'fob_pto_aguirre', 'FOB Pto Aguirre', 'ros');
+  renderVentaSojaCharts(costosAll, costosLabels, 'limaChart', 'limaFilters', 'limaPeriod', 'limaChartsEmpty', 'venta_soja_lima', 'fob_desaguadero', 'FOB Desaguadero', 'lima');
   renderGrains(all, labels);
   renderSoy(all, labels);
   renderFreight(all, labels);
