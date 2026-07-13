@@ -487,7 +487,7 @@ function populateSiloDropdown(){
 }
 
 // Yes -> Costo FCA SCZ Grano minus the selected silo's Flete.
-// No  -> Costo FCA SCZ Grano minus a manually entered Costo de flete (0-100).
+// No  -> Costo FCA SCZ Grano PLUS a manually entered Costo de flete (0-100).
 // Margen = Precio ofrecido - Costo de referencia (positive = rentable:
 // the offered price is above what the grain would cost delivered FCA SCZ).
 function recalculate(){
@@ -515,7 +515,7 @@ function recalculate(){
   const fleteAplicado = enSilo ? (selectedSilo ? selectedSilo.flete : null) : fleteManual;
 
   breakdownFleteRow.style.display = 'flex';
-  breakdownFlete.textContent = fleteAplicado !== null ? `- ${fmt(fleteAplicado)} USD/Tn` : '—';
+  breakdownFlete.textContent = fleteAplicado !== null ? `${enSilo ? '-' : '+'} ${fmt(fleteAplicado)} USD/Tn` : '—';
 
   const missingReasons = [];
   if (hojaCostos.costoFcaSczGrano === null) missingReasons.push('sin dato de Costo FCA SCZ Grano');
@@ -530,13 +530,15 @@ function recalculate(){
     marginEl.textContent = '—'; marginEl.className = 'value';
     totalEl.textContent = '—'; totalEl.className = 'value';
     breakdownRef.textContent = (hojaCostos.costoFcaSczGrano !== null && fleteAplicado !== null)
-      ? `${fmt(hojaCostos.costoFcaSczGrano - fleteAplicado)} USD/Tn`
+      ? `${fmt(enSilo ? hojaCostos.costoFcaSczGrano - fleteAplicado : hojaCostos.costoFcaSczGrano + fleteAplicado)} USD/Tn`
       : (hojaCostos.costoFcaSczGrano !== null ? `${fmt(hojaCostos.costoFcaSczGrano)} USD/Tn` : '—');
     breakdownPrecio.textContent = !Number.isNaN(precio) ? `${fmt(precio)} USD/Tn` : '—';
     return;
   }
 
-  const referencia = hojaCostos.costoFcaSczGrano - fleteAplicado;
+  const referencia = enSilo
+    ? hojaCostos.costoFcaSczGrano - fleteAplicado
+    : hojaCostos.costoFcaSczGrano + fleteAplicado;
   const margen = precio - referencia;
   const gananciaTotal = margen * volumen;
   const rentable = margen > 0;
