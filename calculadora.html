@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora · Precios agropecuarios · Bolivia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #171B18;
+    --bg-panel: #1E231F;
+    --line: #33392F;
+    --text: #EDEAD4;
+    --text-dim: #9BA192;
+    --grain: #D9A441;
+    --grain-dim: #6B5729;
+    --soy: #8CAE7C;
+    --soy-dim: #3E4F35;
+    --freight: #7FA6C4;
+    --freight-dim: #35434E;
+    --costos: #C97A6B;
+    --costos-dim: #4E3430;
+    --good: #8CAE7C;
+    --good-dim: #2E3B27;
+    --bad: #C97A6B;
+    --bad-dim: #4E3430;
+    --radius: 6px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'JetBrains Mono', monospace;
+    font-size:14px;
+    line-height:1.6;
+    padding:0 0 80px;
+  }
+  h1,h2,h3{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  header{
+    padding:48px 32px 32px;
+    border-bottom:1px solid var(--line);
+    max-width:1080px;
+    margin:0 auto;
+  }
+  header .eyebrow{
+    color:var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:0.12em;
+    font-size:11px;
+    margin-bottom:10px;
+  }
+  header h1{font-size:32px;}
+  header p{color:var(--text-dim); margin-top:10px; font-size:13px;}
+  .page-nav{
+    display:flex;
+    gap:10px;
+    margin-top:22px;
+  }
+  .page-nav a{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    padding:8px 16px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    text-decoration:none;
+  }
+  .page-nav a:hover{color:var(--text); border-color:var(--text-dim);}
+  .page-nav a.active{background:var(--bg-panel); color:var(--text); border-color:var(--text-dim);}
+  main{max-width:720px; margin:0 auto; padding:0 32px;}
+  section{margin-top:40px;}
+  section > h2{font-size:20px; margin-bottom:4px;}
+  .sub{color:var(--text-dim); font-size:12px; margin-bottom:20px;}
+  .group-label{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+    padding:4px 10px;
+    border-radius:999px;
+    margin-bottom:16px;
+    color:var(--costos); background:var(--costos-dim);
+  }
+
+  .calc-card{
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:24px;
+    margin-bottom:24px;
+  }
+  .field{ margin-bottom:20px; }
+  .field:last-child{ margin-bottom:0; }
+  .field label{
+    display:block;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text-dim);
+    margin-bottom:8px;
+  }
+  .field input[type="number"], .field select{
+    width:100%;
+    background:var(--bg);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-family:'JetBrains Mono', monospace;
+    font-size:15px;
+    padding:12px 14px;
+    border-radius:4px;
+  }
+  .field input[type="number"]:focus, .field select:focus{
+    outline:none;
+    border-color:var(--text-dim);
+  }
+  .field select{ appearance:none; cursor:pointer; }
+  .field select:disabled{ opacity:0.4; cursor:not-allowed; }
+  .toggle-group{ display:flex; gap:10px; }
+  .toggle-btn{
+    flex:1;
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    padding:12px 14px;
+    border-radius:4px;
+    border:1px solid var(--line);
+    background:var(--bg);
+    color:var(--text-dim);
+    cursor:pointer;
+  }
+  .toggle-btn:hover{ border-color:var(--text-dim); color:var(--text); }
+  .toggle-btn.active{
+    background:var(--costos-dim);
+    color:var(--costos);
+    border-color:var(--costos);
+  }
+
+  .result-card{
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:24px;
+    text-align:center;
+  }
+  .result-badge{
+    display:inline-block;
+    font-family:'Fraunces', serif;
+    font-size:20px;
+    font-weight:500;
+    letter-spacing:0.02em;
+    padding:10px 24px;
+    border-radius:999px;
+    margin-bottom:20px;
+  }
+  .result-badge.rentable{ background:var(--good-dim); color:var(--good); }
+  .result-badge.no-rentable{ background:var(--bad-dim); color:var(--bad); }
+  .result-badge.pending{ background:var(--bg); color:var(--text-dim); border:1px dashed var(--line); }
+  .result-numbers{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+    margin-bottom:20px;
+  }
+  .result-number .value{
+    font-family:'Fraunces', serif;
+    font-size:24px;
+    color:var(--text);
+    line-height:1;
+  }
+  .result-number .value.good{ color:var(--good); }
+  .result-number .value.bad{ color:var(--bad); }
+  .result-number .label{
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text-dim);
+    margin-top:6px;
+  }
+  .breakdown{
+    text-align:left;
+    border-top:1px dashed var(--line);
+    padding-top:16px;
+    font-size:12.5px;
+  }
+  .breakdown-row{
+    display:flex;
+    justify-content:space-between;
+    padding:5px 0;
+    color:var(--text-dim);
+  }
+  .breakdown-row.total{
+    color:var(--text);
+    border-top:1px solid var(--line);
+    margin-top:6px;
+    padding-top:10px;
+    font-weight:700;
+  }
+  .status-banner{
+    font-size:12.5px;
+    color:var(--text-dim);
+    padding:14px 16px;
+    border:1px dashed var(--line);
+    border-radius:var(--radius);
+    margin-bottom:24px;
+  }
+  .status-banner.error{ color:var(--costos); border-color:var(--costos-dim); }
+  @media (max-width:640px){
+    header{padding:32px 20px 24px;}
+    main{padding:0 20px;}
+    header h1{font-size:26px;}
+    .result-numbers{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Reporte de mercado · herramienta</div>
+  <h1>Precios agropecuarios — Bolivia</h1>
+  <p>Calculadora de rentabilidad — Costo FCA SCZ Grano vs. precio ofrecido</p>
+  <nav class="page-nav">
+    <a href="index.html">Actual</a>
+    <a href="historico.html">Histórico</a>
+    <a href="calculadora.html" class="active">Calculadora</a>
+  </nav>
+</header>
+
+<main>
+
+  <section>
+    <span class="group-label">Calculadora</span>
+    <h2>¿Es rentable la operación?</h2>
+    <div class="sub">Compara el precio que te ofrecen contra el Costo FCA SCZ Grano de la "Hoja de costos", restando el flete del silo correspondiente si aplica.</div>
+
+    <div id="statusBanner" class="status-banner">Cargando datos de la Hoja de costos…</div>
+
+    <div class="calc-card">
+      <div class="field">
+        <label for="volumenInput">Volumen (Tn)</label>
+        <input type="number" id="volumenInput" min="0" step="0.01" placeholder="Ej. 500">
+      </div>
+
+      <div class="field">
+        <label for="precioInput">Precio ofrecido (USD/Tn)</label>
+        <input type="number" id="precioInput" min="0" step="0.01" placeholder="Ej. 280">
+      </div>
+
+      <div class="field">
+        <label>¿En silo?</label>
+        <div class="toggle-group">
+          <button type="button" class="toggle-btn" id="siloSiBtn">Sí</button>
+          <button type="button" class="toggle-btn active" id="siloNoBtn">No</button>
+        </div>
+      </div>
+
+      <div class="field" id="siloSelectField" style="display:none;">
+        <label for="siloSelect">Silo</label>
+        <select id="siloSelect">
+          <option value="">Selecciona un silo…</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div id="resultBadge" class="result-badge pending">Completa los datos</div>
+      <div class="result-numbers">
+        <div class="result-number">
+          <div class="value" id="marginValue">—</div>
+          <div class="label">Margen USD/Tn</div>
+        </div>
+        <div class="result-number">
+          <div class="value" id="totalValue">—</div>
+          <div class="label">Ganancia total USD</div>
+        </div>
+      </div>
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <span>Costo FCA SCZ Grano</span>
+          <span id="breakdownBase">—</span>
+        </div>
+        <div class="breakdown-row" id="breakdownFleteRow" style="display:none;">
+          <span>Flete del silo</span>
+          <span id="breakdownFlete">—</span>
+        </div>
+        <div class="breakdown-row total">
+          <span>Costo de referencia</span>
+          <span id="breakdownRef">—</span>
+        </div>
+        <div class="breakdown-row">
+          <span>Precio ofrecido</span>
+          <span id="breakdownPrecio">—</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// PASTE the published CSV link for the "Hoja de costos" tab here:
+// File > Share > Publish to web > (Hoja de costos) > Comma-separated
+// values (.csv). Leave as the placeholder to see the "not configured"
+// state instead of a fetch error.
+const HOJA_COSTOS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRHmO9eaO2vX_29kL7pp80l9exAdrPXz4sW66PS8yLy_81LLNjUgZtpzkAV6rFvSQ/pub?gid=633943559&single=true&output=csv";
+
+// ---- CSV parsing (quote-aware, so cells with embedded commas/quotes
+// don't break the split) ----
+function parseCsvLine(line){
+  const result = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++){
+    const c = line[i];
+    if (inQuotes){
+      if (c === '"'){
+        if (line[i + 1] === '"'){ cur += '"'; i++; }
+        else inQuotes = false;
+      } else cur += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ','){ result.push(cur); cur = ''; }
+      else cur += c;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+
+function parseCsv(text){
+  return text.split(/\r?\n/).filter(l => l.length > 0).map(parseCsvLine);
+}
+
+function normalize(s){
+  return (s || '').trim().toLowerCase();
+}
+
+// Treats "", "-", and error strings like "#DIV/0!" as no-data.
+function toFloat(v){
+  if (v === undefined || v === null) return null;
+  const cleaned = v.trim();
+  if (cleaned === '' || cleaned === '-' || cleaned.startsWith('#')) return null;
+  const n = parseFloat(cleaned.replace(/,/g, ''));
+  return Number.isNaN(n) ? null : n;
+}
+
+// Parses the "Hoja de costos" sheet:
+//   - a per-silo table (finds the header row containing "Silo" and a
+//     "Flete" column, then reads each silo's name + Flete USD/Tn until
+//     the "Total" row)
+//   - the "Costo FCA SCZ GRANO" scalar (label in one cell, value in the
+//     next numeric cell to its right, wherever it sits in the sheet)
+// A dash in the Flete column means "no freight" (0), matching the
+// sheet's own convention (e.g. Silo Montero) — everywhere else a dash
+// or #DIV/0! means genuinely no data.
+function parseHojaCostosCsv(csvText){
+  const rows = parseCsv(csvText);
+
+  let headerIdx = -1, siloCol = -1, fleteCol = -1;
+  for (let i = 0; i < rows.length; i++){
+    const norm = rows[i].map(normalize);
+    const sIdx = norm.findIndex(c => c === 'silo');
+    const fIdx = norm.findIndex(c => c.includes('flete'));
+    if (sIdx !== -1 && fIdx !== -1){
+      headerIdx = i; siloCol = sIdx; fleteCol = fIdx;
+      break;
+    }
+  }
+
+  const silos = [];
+  if (headerIdx !== -1){
+    for (let i = headerIdx + 1; i < rows.length; i++){
+      const row = rows[i];
+      const name = (row[siloCol] || '').trim();
+      if (!name) continue;
+      if (normalize(name) === 'total') break;
+      const fleteRaw = (row[fleteCol] || '').trim();
+      const flete = fleteRaw === '-' ? 0 : toFloat(fleteRaw);
+      silos.push({ name, flete });
+    }
+  }
+
+  let costoFcaSczGrano = null;
+  for (const row of rows){
+    for (let j = 0; j < row.length; j++){
+      const norm = normalize(row[j]);
+      if (norm.includes('costo fca scz grano') && costoFcaSczGrano === null){
+        for (const cell of row.slice(j + 1)){
+          const v = toFloat(cell);
+          if (v !== null){ costoFcaSczGrano = v; break; }
+        }
+      }
+    }
+  }
+
+  return { silos, costoFcaSczGrano };
+}
+
+async function loadHojaCostos(){
+  if (!HOJA_COSTOS_CSV_URL || HOJA_COSTOS_CSV_URL.startsWith('PASTE_')){
+    const err = new Error('URL not configured');
+    err.code = 'NOT_CONFIGURED';
+    throw err;
+  }
+  const res = await fetch(HOJA_COSTOS_CSV_URL, { cache: 'no-store' });
+  if (!res.ok){
+    const err = new Error('Fetch failed');
+    err.code = 'FETCH_FAILED';
+    throw err;
+  }
+  const text = await res.text();
+  return parseHojaCostosCsv(text);
+}
+
+// ---- state + wiring -------------------------------------------------
+let hojaCostos = { silos: [], costoFcaSczGrano: null };
+let enSilo = false;
+
+const volumenInput = document.getElementById('volumenInput');
+const precioInput = document.getElementById('precioInput');
+const siloSiBtn = document.getElementById('siloSiBtn');
+const siloNoBtn = document.getElementById('siloNoBtn');
+const siloSelectField = document.getElementById('siloSelectField');
+const siloSelect = document.getElementById('siloSelect');
+const statusBanner = document.getElementById('statusBanner');
+
+function fmt(n, decimals = 2){
+  if (n === null || n === undefined || Number.isNaN(n)) return '—';
+  return n.toLocaleString('es-BO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function setSiloMode(toSi){
+  enSilo = toSi;
+  siloSiBtn.classList.toggle('active', toSi);
+  siloNoBtn.classList.toggle('active', !toSi);
+  siloSelectField.style.display = toSi ? 'block' : 'none';
+  recalculate();
+}
+siloSiBtn.addEventListener('click', () => setSiloMode(true));
+siloNoBtn.addEventListener('click', () => setSiloMode(false));
+siloSelect.addEventListener('change', recalculate);
+volumenInput.addEventListener('input', recalculate);
+precioInput.addEventListener('input', recalculate);
+
+function populateSiloDropdown(){
+  siloSelect.innerHTML = '<option value="">Selecciona un silo…</option>';
+  hojaCostos.silos.forEach((silo, idx) => {
+    const opt = document.createElement('option');
+    opt.value = String(idx);
+    opt.textContent = silo.flete !== null ? `${silo.name} (Flete ${fmt(silo.flete)} USD/Tn)` : `${silo.name} (sin flete)`;
+    siloSelect.appendChild(opt);
+  });
+  siloSelect.disabled = hojaCostos.silos.length === 0;
+}
+
+// Yes -> Costo FCA SCZ Grano minus the selected silo's Flete.
+// No  -> the full Costo FCA SCZ Grano, unchanged.
+// Margen = Precio ofrecido - Costo de referencia (positive = rentable:
+// the offered price is above what the grain would cost delivered FCA SCZ).
+function recalculate(){
+  const volumen = parseFloat(volumenInput.value);
+  const precio = parseFloat(precioInput.value);
+  const badge = document.getElementById('resultBadge');
+  const marginEl = document.getElementById('marginValue');
+  const totalEl = document.getElementById('totalValue');
+  const breakdownBase = document.getElementById('breakdownBase');
+  const breakdownFleteRow = document.getElementById('breakdownFleteRow');
+  const breakdownFlete = document.getElementById('breakdownFlete');
+  const breakdownRef = document.getElementById('breakdownRef');
+  const breakdownPrecio = document.getElementById('breakdownPrecio');
+
+  breakdownBase.textContent = hojaCostos.costoFcaSczGrano !== null ? `${fmt(hojaCostos.costoFcaSczGrano)} USD/Tn` : 'sin dato';
+
+  let selectedSilo = null;
+  if (enSilo && siloSelect.value !== '') selectedSilo = hojaCostos.silos[Number(siloSelect.value)];
+  breakdownFleteRow.style.display = enSilo ? 'flex' : 'none';
+  breakdownFlete.textContent = selectedSilo && selectedSilo.flete !== null ? `- ${fmt(selectedSilo.flete)} USD/Tn` : '—';
+
+  const missingReasons = [];
+  if (hojaCostos.costoFcaSczGrano === null) missingReasons.push('sin dato de Costo FCA SCZ Grano');
+  if (enSilo && !selectedSilo) missingReasons.push('selecciona un silo');
+  if (Number.isNaN(volumen) || volumen <= 0) missingReasons.push('ingresa el volumen');
+  if (Number.isNaN(precio) || precio <= 0) missingReasons.push('ingresa el precio ofrecido');
+
+  if (missingReasons.length > 0){
+    badge.className = 'result-badge pending';
+    badge.textContent = 'Completa los datos';
+    marginEl.textContent = '—'; marginEl.className = 'value';
+    totalEl.textContent = '—'; totalEl.className = 'value';
+    breakdownRef.textContent = hojaCostos.costoFcaSczGrano !== null
+      ? `${fmt(enSilo && selectedSilo ? hojaCostos.costoFcaSczGrano - selectedSilo.flete : hojaCostos.costoFcaSczGrano)} USD/Tn`
+      : '—';
+    breakdownPrecio.textContent = !Number.isNaN(precio) ? `${fmt(precio)} USD/Tn` : '—';
+    return;
+  }
+
+  const referencia = enSilo ? (hojaCostos.costoFcaSczGrano - selectedSilo.flete) : hojaCostos.costoFcaSczGrano;
+  const margen = precio - referencia;
+  const gananciaTotal = margen * volumen;
+  const rentable = margen > 0;
+
+  breakdownRef.textContent = `${fmt(referencia)} USD/Tn`;
+  breakdownPrecio.textContent = `${fmt(precio)} USD/Tn`;
+
+  badge.className = 'result-badge ' + (rentable ? 'rentable' : 'no-rentable');
+  badge.textContent = rentable ? 'RENTABLE' : 'NO RENTABLE';
+  marginEl.textContent = `${margen >= 0 ? '' : '−'}${fmt(Math.abs(margen))}`;
+  marginEl.className = 'value ' + (rentable ? 'good' : 'bad');
+  totalEl.textContent = `${gananciaTotal >= 0 ? '' : '−'}${fmt(Math.abs(gananciaTotal), 2)}`;
+  totalEl.className = 'value ' + (rentable ? 'good' : 'bad');
+}
+
+async function init(){
+  try {
+    hojaCostos = await loadHojaCostos();
+    populateSiloDropdown();
+    if (hojaCostos.costoFcaSczGrano === null){
+      statusBanner.className = 'status-banner error';
+      statusBanner.textContent = 'La hoja no tiene un valor válido de Costo FCA SCZ Grano en este momento (revisa la hoja de cálculo).';
+    } else {
+      statusBanner.style.display = 'none';
+    }
+  } catch (err) {
+    statusBanner.className = 'status-banner error';
+    if (err.code === 'NOT_CONFIGURED'){
+      statusBanner.textContent = 'Falta configurar el enlace CSV de la Hoja de costos en el código de esta página.';
+    } else {
+      statusBanner.textContent = 'No se pudo cargar la Hoja de costos. Verifica que el enlace esté publicado como CSV y accesible.';
+    }
+  }
+  recalculate();
+}
+
+init();
+</script>
+
+</body>
+</html>
