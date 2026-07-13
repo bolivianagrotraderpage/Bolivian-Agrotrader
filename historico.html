@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calculadora · Precios agropecuarios · Bolivia</title>
+<title>Histórico · Precios agropecuarios · Bolivia</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   :root{
     --bg: #171B18;
@@ -21,10 +22,6 @@
     --freight-dim: #35434E;
     --costos: #C97A6B;
     --costos-dim: #4E3430;
-    --good: #8CAE7C;
-    --good-dim: #2E3B27;
-    --bad: #C97A6B;
-    --bad-dim: #4E3430;
     --radius: 6px;
   }
   *{box-sizing:border-box}
@@ -74,10 +71,21 @@
   }
   .page-nav a:hover{color:var(--text); border-color:var(--text-dim);}
   .page-nav a.active{background:var(--bg-panel); color:var(--text); border-color:var(--text-dim);}
-  main{max-width:720px; margin:0 auto; padding:0 32px;}
-  section{margin-top:40px;}
-  section > h2{font-size:20px; margin-bottom:4px;}
+  main{max-width:1080px; margin:0 auto; padding:0 32px;}
+  section{margin-top:0;}
+  section:first-of-type{margin-top:40px;}
+  section > h2{
+    font-size:20px;
+    margin-bottom:4px;
+  }
   .sub{color:var(--text-dim); font-size:12px; margin-bottom:20px;}
+  .footnote{
+    color:var(--text-dim);
+    font-size:11px;
+    line-height:1.6;
+    margin:20px 0 0;
+    font-style:italic;
+  }
   .group-label{
     display:inline-flex;
     align-items:center;
@@ -88,431 +96,724 @@
     padding:4px 10px;
     border-radius:999px;
     margin-bottom:16px;
-    color:var(--costos); background:var(--costos-dim);
   }
-
-  .calc-card{
+  .group-label.grain{color:var(--grain); background:var(--grain-dim);}
+  .group-label.soy{color:var(--soy); background:var(--soy-dim);}
+  .group-label.freight{color:var(--freight); background:var(--freight-dim);}
+  .group-label.costos{color:var(--costos); background:var(--costos-dim);}
+  .chart-panel{
     background:var(--bg-panel);
     border:1px solid var(--line);
     border-radius:var(--radius);
-    padding:24px;
+    padding:20px;
     margin-bottom:24px;
   }
-  .field{ margin-bottom:20px; }
-  .field:last-child{ margin-bottom:0; }
-  .field label{
-    display:block;
-    font-size:11.5px;
-    text-transform:uppercase;
-    letter-spacing:0.06em;
-    color:var(--text-dim);
-    margin-bottom:8px;
-  }
-  .field input[type="number"], .field select{
-    width:100%;
-    background:var(--bg);
-    border:1px solid var(--line);
-    color:var(--text);
-    font-family:'JetBrains Mono', monospace;
-    font-size:15px;
-    padding:12px 14px;
-    border-radius:4px;
-  }
-  .field input[type="number"]:focus, .field select:focus{
-    outline:none;
-    border-color:var(--text-dim);
-  }
-  .field select{ appearance:none; cursor:pointer; }
-  .field select:disabled{ opacity:0.4; cursor:not-allowed; }
-
-  .result-card{
-    background:var(--bg-panel);
-    border:1px solid var(--line);
-    border-radius:var(--radius);
-    padding:24px;
-    text-align:center;
-  }
-  .result-badge{
-    display:inline-block;
-    font-family:'Fraunces', serif;
-    font-size:20px;
-    font-weight:500;
-    letter-spacing:0.02em;
-    padding:10px 24px;
-    border-radius:999px;
-    margin-bottom:20px;
-  }
-  .result-badge.rentable{ background:var(--good-dim); color:var(--good); }
-  .result-badge.no-rentable{ background:var(--bad-dim); color:var(--bad); }
-  .result-badge.pending{ background:var(--bg); color:var(--text-dim); border:1px dashed var(--line); }
-  .result-numbers{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:16px;
-    margin-bottom:20px;
-  }
-  .result-number .value{
-    font-family:'Fraunces', serif;
-    font-size:24px;
-    color:var(--text);
-    line-height:1;
-  }
-  .result-number .value.good{ color:var(--good); }
-  .result-number .value.bad{ color:var(--bad); }
-  .result-number .label{
-    font-size:10.5px;
-    text-transform:uppercase;
-    letter-spacing:0.06em;
-    color:var(--text-dim);
-    margin-top:6px;
-  }
-  .breakdown{
-    text-align:left;
-    border-top:1px dashed var(--line);
-    padding-top:16px;
-    font-size:12.5px;
-  }
-  .breakdown-row{
+  .chart-panel canvas{max-height:280px;}
+  .chart-filters{
     display:flex;
-    justify-content:space-between;
-    padding:5px 0;
-    color:var(--text-dim);
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:16px;
   }
-  .breakdown-row.total{
-    color:var(--text);
-    border-top:1px solid var(--line);
-    margin-top:6px;
-    padding-top:10px;
-    font-weight:700;
-  }
-  .status-banner{
-    font-size:12.5px;
+  .filter-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    padding:6px 12px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    background:transparent;
     color:var(--text-dim);
-    padding:14px 16px;
+    cursor:pointer;
+  }
+  .filter-chip:hover{border-color:var(--text-dim); color:var(--text);}
+  .filter-chip.active{background:var(--bg); color:var(--text); border-color:var(--text-dim);}
+  .filter-chip .chip-dot{
+    width:8px; height:8px; border-radius:50%; display:inline-block; flex-shrink:0;
+  }
+  .period-filters{
+    padding-bottom:14px;
+    margin-bottom:14px;
+    border-bottom:1px dashed var(--line);
+  }
+  .period-chip.active{
+    background:var(--costos-dim);
+    color:var(--costos);
+    border-color:var(--costos);
+  }
+  .empty-state{
+    color:var(--text-dim);
+    font-size:13px;
+    padding:32px 0;
+    text-align:center;
     border:1px dashed var(--line);
     border-radius:var(--radius);
-    margin-bottom:24px;
   }
-  .status-banner.error{ color:var(--costos); border-color:var(--costos-dim); }
+
+  .market-title{ text-align:center; }
+  .costos-subhead{
+    font-family:'Fraunces', serif;
+    font-size:18px;
+    font-weight:500;
+    color:var(--text);
+    margin-top:8px;
+  }
+  .subtle-divider{
+    height:2px;
+    margin:32px 0;
+    background:linear-gradient(90deg,
+      transparent 0%, var(--line) 22%, var(--costos) 50%, var(--line) 78%, transparent 100%);
+  }
+  .double-line-divider{
+    height:6px;
+    margin:28px 0 20px;
+    background:
+      linear-gradient(90deg, transparent 0%, var(--costos) 50%, transparent 100%) top / 100% 2px no-repeat,
+      linear-gradient(90deg, transparent 0%, var(--costos) 50%, transparent 100%) bottom / 100% 2px no-repeat;
+  }
+  .fob-subsection{ margin-bottom:28px; }
+  .fob-subsection-label{ color:var(--text-dim); font-size:12px; margin-bottom:12px; }
+  .fob-section-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; }
+  .stack-grid{ display:flex; gap:14px; margin-bottom:24px; }
+  .stack-column{ flex:1; display:flex; flex-direction:column; gap:14px; }
+  @media (max-width:640px){
+    .stack-grid{flex-wrap:wrap;}
+    .stack-column{flex:1 1 45%;}
+  }
+  .fob-card{
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    overflow:hidden;
+  }
+  .fob-card.span-2{ grid-column:span 2; }
+  .fob-card .fob-card-header{
+    padding:12px 16px;
+    border-bottom:1px solid var(--line);
+    background:rgba(0,0,0,0.15);
+  }
+  .fob-card .fob-card-header .l1{
+    font-size:10px; text-transform:uppercase; letter-spacing:0.08em;
+    color:var(--card-color, var(--costos));
+  }
+  .fob-card .fob-card-header .l2{
+    font-family:'Fraunces', serif; font-size:15px; color:var(--text); margin-top:2px;
+  }
+  .fob-card .fob-card-body{ padding:16px; text-align:center; }
+  .fob-card .fob-card-body .value{
+    font-family:'Fraunces', serif; font-size:26px; font-weight:500; color:var(--text); line-height:1;
+  }
+  .fob-card .fob-card-body .value.placeholder{ color:var(--text-dim); }
+  .fob-card .fob-card-body .value.result-text{ font-size:17px; letter-spacing:0.04em; text-transform:uppercase; }
+  .fob-card .fob-card-body .unit{ font-size:10.5px; color:var(--text-dim); margin-top:6px; }
+  .fob-card .fob-card-body.split{ display:flex; padding:0; text-align:center; }
+  .fob-card .fob-card-body.split .split-half{ flex:1; padding:14px 10px; }
+  .fob-card .fob-card-body.split .split-half:first-child{ border-right:1px solid var(--line); }
+  .fob-card .fob-card-body.split .split-label{
+    font-size:9.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin-bottom:6px;
+  }
+  .fob-card .fob-card-body.split .value{ font-size:19px; }
+  @media (max-width:640px){
+    .fob-section-grid{grid-template-columns:repeat(2, 1fr);}
+    .fob-card.span-2{grid-column:span 2;}
+  }
+
+  .section-divider{
+    margin:48px 0;
+    height:1px;
+    background:linear-gradient(90deg, transparent 0%, var(--line) 12%, var(--line) 88%, transparent 100%);
+    position:relative;
+  }
+  .section-divider::before{
+    content:'';
+    position:absolute;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    width:9px; height:9px;
+    border-radius:50%;
+    background:var(--divider-color, var(--costos));
+    box-shadow:0 0 0 5px var(--bg), 0 0 14px 1px var(--divider-color, var(--costos));
+  }
+  .section-divider.divider-grain{ --divider-color: var(--grain); }
+  .section-divider.divider-soy{ --divider-color: var(--soy); }
+  .section-divider.divider-freight{ --divider-color: var(--freight); }
+  .section-divider.divider-costos{ --divider-color: var(--costos); }
+
   @media (max-width:640px){
     header{padding:32px 20px 24px;}
     main{padding:0 20px;}
     header h1{font-size:26px;}
-    .result-numbers{grid-template-columns:1fr;}
   }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="eyebrow">Reporte de mercado · herramienta</div>
+  <div class="eyebrow">Reporte de mercado · histórico</div>
   <h1>Precios agropecuarios — Bolivia</h1>
-  <p>Calculadora de rentabilidad — Costo FCA SCZ Grano vs. precio ofrecido</p>
+  <p>Evolución histórica de costos de venta, mercado exterior, granos, complejo soya y fletes</p>
   <nav class="page-nav">
     <a href="index.html">Actual</a>
-    <a href="historico.html">Histórico</a>
-    <a href="calculadora.html" class="active">Calculadora</a>
+    <a href="historico.html" class="active">Histórico</a>
+    <a href="calculadora.html">Calculadora</a>
   </nav>
 </header>
 
 <main>
 
-  <section>
-    <span class="group-label">Calculadora</span>
-    <h2>¿Es rentable la operación?</h2>
-    <div class="sub">Compara el precio que te ofrecen contra el Costo FCA SCZ Grano de la "Hoja de costos", restando el flete del silo correspondiente si aplica.</div>
+  <section id="costos-history-section">
+    <span class="group-label costos">Precios de mercado</span>
 
-    <div id="statusBanner" class="status-banner">Cargando datos de la Hoja de costos…</div>
+    <h2 class="market-title">Mercado Exterior</h2>
+    <div class="sub market-title">Soya grano, Harina Solvente y Aceite — Rosario / Chicago / Desaguadero, y bases vs. Chicago</div>
 
-    <div class="calc-card">
-      <div class="field">
-        <label for="volumenInput">Volumen (Tn)</label>
-        <input type="number" id="volumenInput" min="0" step="0.01" placeholder="Ej. 500">
-      </div>
-
-      <div class="field">
-        <label for="precioInput">Precio ofrecido (USD/Tn)</label>
-        <input type="number" id="precioInput" min="0" step="0.01" placeholder="Ej. 280">
-      </div>
-
-      <div class="field">
-        <label for="fleteManualInput">Costo de flete (USD/Tn) — opcional</label>
-        <input type="number" id="fleteManualInput" min="0" step="0.01" placeholder="Ej. 15 (0 si no aplica)">
-      </div>
+    <div class="fob-subsection-label">Histórico de precios por producto</div>
+    <div class="chart-panel">
+      <div id="mePreciosPeriod" class="chart-filters period-filters"></div>
+      <div id="mePreciosFilters" class="chart-filters"></div>
+      <canvas id="mePreciosChart"></canvas>
+      <div id="mePreciosChartsEmpty" class="empty-state">Aún no hay histórico de precios de Mercado Exterior.</div>
     </div>
 
-    <div class="result-card">
-      <div id="resultBadge" class="result-badge pending">Completa los datos</div>
-      <div class="result-numbers">
-        <div class="result-number">
-          <div class="value" id="marginValue">—</div>
-          <div class="label">Margen USD/Tn</div>
-        </div>
-        <div class="result-number">
-          <div class="value" id="totalValue">—</div>
-          <div class="label">Ganancia total USD</div>
-        </div>
-      </div>
-      <div class="breakdown">
-        <div class="breakdown-row">
-          <span>Costo FCA SCZ Grano</span>
-          <span id="breakdownBase">—</span>
-        </div>
-        <div class="breakdown-row" id="breakdownFleteRow" style="display:none;">
-          <span>Flete</span>
-          <span id="breakdownFlete">—</span>
-        </div>
-        <div class="breakdown-row total">
-          <span>Costo de referencia</span>
-          <span id="breakdownRef">—</span>
-        </div>
-        <div class="breakdown-row">
-          <span>Precio ofrecido</span>
-          <span id="breakdownPrecio">—</span>
-        </div>
-      </div>
+    <div class="fob-subsection-label">Histórico de bases por producto</div>
+    <div class="chart-panel">
+      <div id="meBasePeriod" class="chart-filters period-filters"></div>
+      <div id="meBaseFilters" class="chart-filters"></div>
+      <canvas id="meBaseChart"></canvas>
+      <div id="meBaseChartsEmpty" class="empty-state">Aún no hay histórico de bases de Mercado Exterior.</div>
+    </div>
+    <p class="footnote">*Base: diferencia entre el precio del mercado de referencia (Rosario o Desaguadero) y Chicago.</p>
+
+    <div class="double-line-divider"></div>
+    <h2 class="market-title">Venta de soja — mercado Rosario</h2>
+    <div class="sub market-title">Histórico de FOB Pto Aguirre y FCA SCZ (Montero) por producto</div>
+
+    <div class="chart-panel">
+      <div id="rosarioPeriod" class="chart-filters period-filters"></div>
+      <div id="rosarioFilters" class="chart-filters"></div>
+      <canvas id="rosarioChart"></canvas>
+      <div id="rosarioChartsEmpty" class="empty-state">Aún no hay histórico de costos de Rosario.</div>
+    </div>
+
+    <div class="double-line-divider"></div>
+    <h2 class="market-title">Venta de soja — mercado Desaguadero</h2>
+    <div class="sub market-title">Histórico de FOB Desaguadero y FCA SCZ (Montero) por producto</div>
+
+    <div class="chart-panel">
+      <div id="limaPeriod" class="chart-filters period-filters"></div>
+      <div id="limaFilters" class="chart-filters"></div>
+      <canvas id="limaChart"></canvas>
+      <div id="limaChartsEmpty" class="empty-state">Aún no hay histórico de costos de Desaguadero.</div>
+    </div>
+  </section>
+
+  <div class="section-divider divider-grain"></div>
+
+  <section id="grains-section">
+    <span class="group-label grain">Granos</span>
+    <h2>Maíz, sorgo y harinas</h2>
+    <div class="sub">Cochabamba · Santa Cruz · Anapo</div>
+    <div class="chart-panel">
+      <div id="grainsPeriod" class="chart-filters period-filters"></div>
+      <div id="grainsFilters" class="chart-filters"></div>
+      <canvas id="grainsChart"></canvas>
+      <div id="grainsEmpty" class="empty-state">Aún no hay datos. Agregue un registro con el formulario en la página principal.</div>
+    </div>
+  </section>
+
+  <div class="section-divider divider-soy"></div>
+
+  <section id="soy-section">
+    <span class="group-label soy">Complejo soya</span>
+    <h2>Soya, aceite y torta — FOB</h2>
+    <div class="sub">Perú · Bolivia · Chicago · Argentina</div>
+    <div class="chart-panel">
+      <div id="soyPeriod" class="chart-filters period-filters"></div>
+      <div id="soyFilters" class="chart-filters"></div>
+      <canvas id="soyChart"></canvas>
+      <div id="soyEmpty" class="empty-state">Aún no hay datos. Agregue un registro con el formulario en la página principal.</div>
+    </div>
+  </section>
+
+  <div class="section-divider divider-freight"></div>
+
+  <section id="freight-section">
+    <span class="group-label freight">Fletes</span>
+    <h2>Lima y Arica</h2>
+    <div class="chart-panel">
+      <div id="freightPeriod" class="chart-filters period-filters"></div>
+      <div id="freightFilters" class="chart-filters"></div>
+      <canvas id="freightChart"></canvas>
+      <div id="freightEmpty" class="empty-state">Aún no hay datos. Agregue un registro con el formulario en la página principal.</div>
     </div>
   </section>
 
 </main>
 
 <script>
-// PASTE the published CSV link for the "Hoja de costos" tab here:
-// File > Share > Publish to web > (Hoja de costos) > Comma-separated
-// values (.csv). Leave as the placeholder to see the "not configured"
-// state instead of a fetch error.
-const HOJA_COSTOS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRHmO9eaO2vX_29kL7pp80l9exAdrPXz4sW66PS8yLy_81LLNjUgZtpzkAV6rFvSQ/pub?gid=633943559&single=true&output=csv";
+// ---- field schema ----
+const GRAIN_PRODUCTS = [
+  {key:'maiz', label:'Maíz'}, {key:'sorgo', label:'Sorgo'},
+  {key:'harina_integral', label:'H. Integral'}, {key:'harina_solvente', label:'H. Solvente'},
+];
+const GRAIN_REGIONS = [
+  {key:'cbba', label:'Cochabamba'}, {key:'scz', label:'Santa Cruz'}, {key:'anapo', label:'Anapo'},
+];
+const SOY_PRODUCTS = [
+  {key:'soya_fob', label:'Soya FOB'}, {key:'aceite_fob', label:'Aceite FOB'}, {key:'torta_soya_fob', label:'Torta de soya FOB'},
+];
+const SOY_REGIONS = [
+  {key:'peru', label:'Perú'}, {key:'bolivia', label:'Bolivia'}, {key:'chicago', label:'Chicago'}, {key:'argentina', label:'Argentina'},
+];
+const FREIGHT_ROUTES = [ {key:'lima', label:'Lima'}, {key:'arica', label:'Arica'} ];
 
-// ---- CSV parsing (quote-aware, so cells with embedded commas/quotes
-// don't break the split) ----
-function parseCsvLine(line){
-  const result = [];
-  let cur = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++){
-    const c = line[i];
-    if (inQuotes){
-      if (c === '"'){
-        if (line[i + 1] === '"'){ cur += '"'; i++; }
-        else inQuotes = false;
-      } else cur += c;
-    } else {
-      if (c === '"') inQuotes = true;
-      else if (c === ','){ result.push(cur); cur = ''; }
-      else cur += c;
-    }
-  }
-  result.push(cur);
-  return result;
-}
+const VENTA_SOJA_PRODUCTS = [
+  {key:'grano', label:'Grano', color:'var(--soy)'},
+  {key:'solvente', label:'Solvente', color:'var(--freight)'},
+  {key:'aceite', label:'Aceite', color:'var(--grain)'},
+];
 
-function parseCsv(text){
-  return text.split(/\r?\n/).filter(l => l.length > 0).map(parseCsvLine);
-}
+const MERCADO_EXT_MARKETS = [
+  {key:'chicago', label:'Chicago', color:'var(--freight)'},
+  {key:'rosario', label:'Rosario', color:'var(--costos)'},
+  {key:'desaguadero', label:'Desaguadero', color:'var(--grain)'},
+];
+const MERCADO_EXT_PRODUCTS = [
+  {key:'soya_grano', label:'Soya grano'}, {key:'harina_solvente', label:'Harina Solvente'}, {key:'aceite', label:'Aceite'},
+];
+const MERCADO_EXT_BASES = [
+  {key:'rosario_chicago', label:'Base Rosario − Chicago', color:'var(--costos)', route:'venta_soja_rosario'},
+  {key:'desaguadero_chicago', label:'Base Desaguadero − Chicago', color:'var(--grain)', route:'venta_soja_lima'},
+];
+const MERCADO_EXT_TO_VENTA_PRODUCT = { soya_grano: 'grano', harina_solvente: 'solvente', aceite: 'aceite' };
 
-function normalize(s){
-  return (s || '').trim().toLowerCase();
-}
+// Per-market / per-base shade palettes: 3 shades each (one per product),
+// derived from that market's/base's accent color so all its lines read
+// as a family while still being distinguishable in the combined chart.
+const MERCADO_EXT_MARKET_SHADES = {
+  chicago:     ['#7FA6C4', '#5A85A8', '#A9C6DE'],
+  rosario:     ['#C97A6B', '#A85A4E', '#E0998C'],
+  desaguadero: ['#D9A441', '#B8862E', '#E8C170'],
+};
+const MERCADO_EXT_BASE_SHADES = {
+  rosario_chicago:     ['#C97A6B', '#A85A4E', '#E0998C'],
+  desaguadero_chicago: ['#D9A441', '#B8862E', '#E8C170'],
+};
 
-// Treats "", "-", and error strings like "#DIV/0!" as no-data.
-// Handles both number formats that show up across these sheets:
-// standard "1234.56" and Spanish-locale "1.234,56" / "335,19" (period as
-// thousands separator, comma as decimal). Whichever separator appears
-// LAST is the decimal point; if only a comma is present, it's treated
-// as the decimal separator (matches this sheet's "335,19" style, not
-// "4,255" thousands-style, which doesn't appear here).
-function toFloat(v){
-  if (v === undefined || v === null) return null;
-  let cleaned = v.trim();
-  if (cleaned === '' || cleaned === '-' || cleaned.startsWith('#')) return null;
+// Metric-level shade families for the Venta de soja combined charts (one
+// shade per product within each metric group); costo_g_industrial is a
+// scalar (no per-product split) so it gets a single dedicated color.
+const VENTA_METRIC_SHADES = {
+  fob:                   ['#C97A6B', '#A85A4E', '#E0998C'],
+  fca_scz_montero:       ['#D9A441', '#B8862E', '#E8C170'],
+  costo_exp:             ['#7FA6C4', '#5A85A8', '#A9C6DE'],
+  costo_total_transporte:['#8CAE7C', '#6B8F5C', '#4E7A44'],
+};
+const VENTA_GIND_COLOR = '#B5763D';
 
-  const hasComma = cleaned.includes(',');
-  const hasDot = cleaned.includes('.');
-  if (hasComma && hasDot) {
-    cleaned = cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')
-      ? cleaned.replace(/\./g, '').replace(',', '.')  // "1.234,56" -> "1234.56"
-      : cleaned.replace(/,/g, '');                     // "1,234.56" -> "1234.56"
-  } else if (hasComma) {
-    cleaned = cleaned.replace(',', '.');                // "335,19" -> "335.19"
-  }
-
-  const n = parseFloat(cleaned);
-  return Number.isNaN(n) ? null : n;
-}
-
-// Parses the "Hoja de costos" sheet:
-//   - a per-silo table (finds the header row containing "Silo" and a
-//     "Flete" column, then reads each silo's name + Flete USD/Tn until
-//     the "Total" row)
-//   - the "Costo FCA SCZ GRANO" scalar (label in one cell, value in the
-//     next numeric cell to its right, wherever it sits in the sheet)
-// A dash in the Flete column means "no freight" (0), matching the
-// sheet's own convention (e.g. Silo Montero) — everywhere else a dash
-// or #DIV/0! means genuinely no data.
-function parseHojaCostosCsv(csvText){
-  const rows = parseCsv(csvText);
-
-  let headerIdx = -1, siloCol = -1, fleteCol = -1;
-  for (let i = 0; i < rows.length; i++){
-    const norm = rows[i].map(normalize);
-    const sIdx = norm.findIndex(c => c === 'silo');
-    const fIdx = norm.findIndex(c => c.includes('flete'));
-    if (sIdx !== -1 && fIdx !== -1){
-      headerIdx = i; siloCol = sIdx; fleteCol = fIdx;
-      break;
-    }
-  }
-
-  const silos = [];
-  if (headerIdx !== -1){
-    for (let i = headerIdx + 1; i < rows.length; i++){
-      const row = rows[i];
-      const name = (row[siloCol] || '').trim();
-      if (!name) continue;
-      if (normalize(name) === 'total') break;
-      const fleteRaw = (row[fleteCol] || '').trim();
-      const flete = fleteRaw === '-' ? 0 : toFloat(fleteRaw);
-      silos.push({ name, flete });
-    }
-  }
-
-  let costoFcaSczGrano = null;
-  for (const row of rows){
-    for (let j = 0; j < row.length; j++){
-      const norm = normalize(row[j]);
-      if (norm.includes('costo fca scz grano') && costoFcaSczGrano === null){
-        for (const cell of row.slice(j + 1)){
-          const v = toFloat(cell);
-          if (v !== null){ costoFcaSczGrano = v; break; }
-        }
-      }
-    }
-  }
-
-  return { silos, costoFcaSczGrano };
-}
-
-async function loadHojaCostos(){
-  if (!HOJA_COSTOS_CSV_URL || HOJA_COSTOS_CSV_URL.startsWith('PASTE_')){
-    const err = new Error('URL not configured');
-    err.code = 'NOT_CONFIGURED';
-    throw err;
-  }
-  const res = await fetch(HOJA_COSTOS_CSV_URL, { cache: 'no-store' });
-  if (!res.ok){
-    const err = new Error('Fetch failed');
-    err.code = 'FETCH_FAILED';
-    throw err;
-  }
-  const text = await res.text();
-  return parseHojaCostosCsv(text);
-}
-
-// ---- state + wiring -------------------------------------------------
-let hojaCostos = { silos: [], costoFcaSczGrano: null };
-
-const volumenInput = document.getElementById('volumenInput');
-const precioInput = document.getElementById('precioInput');
-const fleteManualInput = document.getElementById('fleteManualInput');
-const statusBanner = document.getElementById('statusBanner');
-
-function fmt(n, decimals = 2){
-  if (n === null || n === undefined || Number.isNaN(n)) return '—';
-  return n.toLocaleString('es-BO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-}
-
-fleteManualInput.addEventListener('input', recalculate);
-volumenInput.addEventListener('input', recalculate);
-precioInput.addEventListener('input', recalculate);
-
-// Costo de referencia = Costo FCA SCZ Grano + Costo de flete (optional,
-// defaults to 0 when left blank — flete no longer depends on picking a
-// silo). Margen = Precio ofrecido - Costo de referencia (positive =
-// rentable: the offered price is above what the grain would cost
-// delivered FCA SCZ).
-function recalculate(){
-  const volumen = parseFloat(volumenInput.value);
-  const precio = parseFloat(precioInput.value);
-  const badge = document.getElementById('resultBadge');
-  const marginEl = document.getElementById('marginValue');
-  const totalEl = document.getElementById('totalValue');
-  const breakdownBase = document.getElementById('breakdownBase');
-  const breakdownFleteRow = document.getElementById('breakdownFleteRow');
-  const breakdownFlete = document.getElementById('breakdownFlete');
-  const breakdownRef = document.getElementById('breakdownRef');
-  const breakdownPrecio = document.getElementById('breakdownPrecio');
-
-  breakdownBase.textContent = hojaCostos.costoFcaSczGrano !== null ? `${fmt(hojaCostos.costoFcaSczGrano)} USD/Tn` : 'sin dato';
-
-  // Optional field: blank means 0. Only a genuinely invalid entry (not
-  // blank, but not a valid non-negative number) blocks the calculation.
-  const fleteRaw = fleteManualInput.value.trim();
-  let flete = 0;
-  let fleteInvalido = false;
-  if (fleteRaw !== ''){
-    const parsed = parseFloat(fleteRaw);
-    if (Number.isNaN(parsed) || parsed < 0) fleteInvalido = true;
-    else flete = parsed;
-  }
-
-  breakdownFleteRow.style.display = 'flex';
-  breakdownFlete.textContent = `+ ${fmt(flete)} USD/Tn`;
-
-  const missingReasons = [];
-  if (hojaCostos.costoFcaSczGrano === null) missingReasons.push('sin dato de Costo FCA SCZ Grano');
-  if (fleteInvalido) missingReasons.push('el costo de flete debe ser 0 o mayor');
-  if (Number.isNaN(volumen) || volumen <= 0) missingReasons.push('ingresa el volumen');
-  if (Number.isNaN(precio) || precio <= 0) missingReasons.push('ingresa el precio ofrecido');
-
-  if (missingReasons.length > 0){
-    badge.className = 'result-badge pending';
-    badge.textContent = 'Completa los datos';
-    marginEl.textContent = '—'; marginEl.className = 'value';
-    totalEl.textContent = '—'; totalEl.className = 'value';
-    breakdownRef.textContent = hojaCostos.costoFcaSczGrano !== null && !fleteInvalido
-      ? `${fmt(hojaCostos.costoFcaSczGrano + flete)} USD/Tn`
-      : '—';
-    breakdownPrecio.textContent = !Number.isNaN(precio) ? `${fmt(precio)} USD/Tn` : '—';
-    return;
-  }
-
-  const referencia = hojaCostos.costoFcaSczGrano + flete;
-  const margen = precio - referencia;
-  const gananciaTotal = margen * volumen;
-  const rentable = margen > 0;
-
-  breakdownRef.textContent = `${fmt(referencia)} USD/Tn`;
-  breakdownPrecio.textContent = `${fmt(precio)} USD/Tn`;
-
-  badge.className = 'result-badge ' + (rentable ? 'rentable' : 'no-rentable');
-  badge.textContent = rentable ? 'RENTABLE' : 'NO RENTABLE';
-  marginEl.textContent = `${margen >= 0 ? '' : '−'}${fmt(Math.abs(margen))}`;
-  marginEl.className = 'value ' + (rentable ? 'good' : 'bad');
-  totalEl.textContent = `${gananciaTotal >= 0 ? '' : '−'}${fmt(Math.abs(gananciaTotal), 2)}`;
-  totalEl.className = 'value ' + (rentable ? 'good' : 'bad');
-}
-
-async function init(){
+// ---- data loading -----------------------------------------------------
+async function loadHistory(){
   try {
-    hojaCostos = await loadHojaCostos();
-    if (hojaCostos.costoFcaSczGrano === null){
-      statusBanner.className = 'status-banner error';
-      statusBanner.textContent = 'La hoja no tiene un valor válido de Costo FCA SCZ Grano en este momento (revisa la hoja de cálculo).';
-    } else {
-      statusBanner.style.display = 'none';
-    }
-  } catch (err) {
-    statusBanner.className = 'status-banner error';
-    if (err.code === 'NOT_CONFIGURED'){
-      statusBanner.textContent = 'Falta configurar el enlace CSV de la Hoja de costos en el código de esta página.';
-    } else {
-      statusBanner.textContent = 'No se pudo cargar la Hoja de costos. Verifica que el enlace esté publicado como CSV y accesible.';
-    }
-  }
-  recalculate();
+    const res = await fetch('processed/history.json', {cache:'no-store'});
+    if (!res.ok) return [];
+    return await res.json();
+  } catch { return []; }
 }
 
-init();
+// costos_history.csv is a separate, permanent daily archive (written by
+// sync_costos_history.py) for Mercado Exterior / Rosario / Desaguadero —
+// unlike history.json, it never loses a previous day's values when the
+// hourly form sync rebuilds history.json from scratch. Rows are
+// "date,route,path,value" (long/tidy format); this reconstructs each
+// date into the same nested {costos: {route: {...}}} shape the chart
+// functions already expect, so nothing downstream needs to change.
+function setNestedPath(obj, path, value){
+  const parts = path.split('.');
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++){
+    cur[parts[i]] = cur[parts[i]] || {};
+    cur = cur[parts[i]];
+  }
+  cur[parts[parts.length - 1]] = value;
+}
+
+async function loadCostosHistory(){
+  try {
+    const res = await fetch('processed/costos_history.csv', {cache:'no-store'});
+    if (!res.ok) return [];
+    const text = await res.text();
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) return []; // header only / empty
+
+    const byDate = {};
+    for (const line of lines.slice(1)){
+      if (!line.trim()) continue;
+      const [date, route, path, rawValue] = line.split(',');
+      const value = parseFloat(rawValue);
+      if (!date || !route || !path || Number.isNaN(value)) continue;
+      byDate[date] = byDate[date] || { date, costos: {} };
+      byDate[date].costos[route] = byDate[date].costos[route] || {};
+      setNestedPath(byDate[date].costos[route], path, value);
+    }
+    return Object.values(byDate);
+  } catch { return []; }
+}
+
+const chartInstances = {};
+
+// The "date" field mixes two formats: ISO "YYYY-MM-DD" (written by
+// sync_costos_history.py / today's costos stamp) and "DD/MM/YYYY" (as
+// Google Forms hands back the "Fecha" column). Every place that sorts,
+// filters, or reformats dates needs to understand both.
+function parseFlexibleDate(d){
+  if (/^\d{4}-\d{2}-\d{2}/.test(d)) {
+    const [y, m, day] = d.split('-').map(Number);
+    return new Date(y, m - 1, day);
+  }
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(d);
+  if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  return new Date(d);
+}
+
+function toYearMonth(d){
+  const date = parseFlexibleDate(d);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function toDayMonthYY(d){
+  const date = parseFlexibleDate(d);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = String(date.getFullYear()).slice(-2);
+  return `${day}/${month}/${year}`;
+}
+
+// ---- date period filtering ----------------------------------------------
+// Every chart gets its own 5-way time-range control. Narrower ranges keep
+// the full YYYY-MM-DD date; broader ones truncate to YYYY-MM so the axis
+// isn't cluttered with a label per day. "Anual" shows the entire history.
+const DATE_PERIODS = [
+  { key: 'yearly',    label: 'Anual',      days: null, format: toYearMonth },
+  { key: 'quarterly', label: 'Trimestral', days: 365,  format: toYearMonth },
+  { key: 'monthly',   label: 'Mensual',    days: 60,   format: toYearMonth },
+  { key: 'weekly',    label: 'Semanal',    days: 28,   format: toDayMonthYY },
+  { key: 'daily',     label: 'Diario',     days: 7,    format: toDayMonthYY },
+];
+const DEFAULT_PERIOD = 'yearly';
+
+// Slices the full (unfiltered) labels/datasets down to the trailing N
+// days implied by `period` (or the whole range for "yearly"), then
+// applies that period's date-label format. Never mutates the originals,
+// so switching periods repeatedly always re-slices from the full data.
+function filterByPeriod(fullLabels, fullDatasets, period){
+  let startIdx = 0;
+  if (period.days !== null && fullLabels.length){
+    const cutoff = parseFlexibleDate(fullLabels[fullLabels.length - 1]);
+    cutoff.setDate(cutoff.getDate() - period.days);
+    const idx = fullLabels.findIndex(d => parseFlexibleDate(d) >= cutoff);
+    startIdx = idx === -1 ? fullLabels.length : idx;
+  }
+  return {
+    labels: fullLabels.slice(startIdx).map(period.format),
+    datasets: fullDatasets.map(ds => ({ ...ds, data: ds.data.slice(startIdx) })),
+  };
+}
+
+// Full/unfiltered data + DOM ids per chart, keyed the same way as
+// chartInstances, so a period switch can re-slice from the original
+// data instead of re-fetching or losing points permanently.
+const chartFullData = {};
+const chartPeriods = {};
+
+function renderPeriodChips(periodId, key){
+  const container = document.getElementById(periodId);
+  if (!container) return;
+  container.innerHTML = '';
+  DATE_PERIODS.forEach(period => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'filter-chip period-chip' + (period.key === (chartPeriods[key] || DEFAULT_PERIOD) ? ' active' : '');
+    btn.textContent = period.label;
+    btn.addEventListener('click', () => applyPeriod(key, period.key));
+    container.appendChild(btn);
+  });
+}
+
+// Re-slices a chart's full data to the chosen period, rebuilds the
+// Chart.js instance, and re-renders its group/line filter chips (reset
+// to "Todos" — the previous selection isn't preserved across a period
+// switch, since the underlying line set can change size).
+function applyPeriod(key, periodKey){
+  const full = chartFullData[key];
+  if (!full) return;
+  chartPeriods[key] = periodKey;
+  const period = DATE_PERIODS.find(p => p.key === periodKey);
+  const { labels, datasets } = filterByPeriod(full.labels, full.datasets, period);
+
+  const periodContainer = document.getElementById(full.periodId);
+  if (periodContainer) {
+    Array.from(periodContainer.children).forEach((btn, i) => {
+      btn.classList.toggle('active', DATE_PERIODS[i].key === periodKey);
+    });
+  }
+
+  const hasData = datasets.some(ds => ds.data.some(v => v !== null));
+  toggleEmpty(full.emptyId, hasData);
+  const canvas = document.getElementById(full.canvasId);
+  canvas.style.display = hasData ? 'block' : 'none';
+  if (!hasData) { document.getElementById(full.filtersId).innerHTML = ''; return; }
+
+  if (chartInstances[key]) chartInstances[key].destroy();
+  chartInstances[key] = new Chart(canvas, { type: 'line', data: { labels, datasets }, options: baseOptions() });
+
+  if (full.groups) {
+    renderGroupedFilterChips(full.filtersId, () => chartInstances[key], full.groups);
+  } else {
+    renderFilterChips(full.filtersId, () => chartInstances[key], datasets);
+  }
+}
+
+// Stores a chart's full data, renders its period chips, and does the
+// initial render at the default period ("Anual" — the whole history).
+// `groups` is optional: pass an array of {key,label,color} for
+// grouped filtering (Mercado Exterior/Rosario/Lima style), or omit it
+// for the simple "isolate one line" style (grains/soy/freight).
+function registerChart(key, canvasId, filtersId, periodId, emptyId, labels, datasets, groups){
+  chartFullData[key] = { labels, datasets, canvasId, filtersId, periodId, emptyId, groups: groups || null };
+  renderPeriodChips(periodId, key);
+  applyPeriod(key, chartPeriods[key] || DEFAULT_PERIOD);
+}
+
+function lineDataset(label, color, points){
+  return { label, data: points, borderColor: color, backgroundColor: color, borderWidth: 2, tension: 0.25, spanGaps: true, pointRadius: 3 };
+}
+
+function baseOptions(){
+  return {
+    responsive: true,
+    animation: false,
+    scales: {
+      x: { ticks: { color: '#9BA192', font: {family:'JetBrains Mono', size: 11} }, grid: { color: '#262B22' } },
+      y: { ticks: { color: '#9BA192', font: {family:'JetBrains Mono', size: 11} }, grid: { color: '#262B22' } },
+    },
+    plugins: { legend: { labels: { color: '#EDEAD4', font: {family:'JetBrains Mono', size: 11}, boxWidth: 12 } } },
+  };
+}
+
+function toggleEmpty(id, hasData){
+  const el = document.getElementById(id);
+  if (el) el.style.display = hasData ? 'none' : 'block';
+}
+
+function renderFilterChips(containerId, chartGetter, datasets){
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  if (datasets.length < 2) return;
+
+  function setActive(btn){
+    container.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  const allBtn = document.createElement('button');
+  allBtn.type = 'button'; allBtn.className = 'filter-chip active'; allBtn.textContent = 'Todos';
+  allBtn.addEventListener('click', () => {
+    const chart = chartGetter();
+    chart.data.datasets.forEach(ds => ds.hidden = false);
+    chart.update(); setActive(allBtn);
+  });
+  container.appendChild(allBtn);
+
+  datasets.forEach((ds, idx) => {
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'filter-chip';
+    btn.innerHTML = `<span class="chip-dot" style="background:${ds.borderColor}"></span>${ds.label}`;
+    btn.addEventListener('click', () => {
+      const chart = chartGetter();
+      chart.data.datasets.forEach((d, i) => { d.hidden = i !== idx; });
+      chart.update(); setActive(btn);
+    });
+    container.appendChild(btn);
+  });
+}
+
+// Like renderFilterChips, but each chip toggles a *group* of datasets
+// (e.g. all 3 product lines for one market) rather than a single line.
+// Datasets must carry a `_filterGroup` property matching group.key.
+function renderGroupedFilterChips(containerId, chartGetter, groups){
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  if (groups.length < 2) return;
+
+  function setActive(btn){
+    container.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  const allBtn = document.createElement('button');
+  allBtn.type = 'button'; allBtn.className = 'filter-chip active'; allBtn.textContent = 'Todos';
+  allBtn.addEventListener('click', () => {
+    const chart = chartGetter();
+    chart.data.datasets.forEach(ds => ds.hidden = false);
+    chart.update(); setActive(allBtn);
+  });
+  container.appendChild(allBtn);
+
+  groups.forEach(group => {
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'filter-chip';
+    btn.innerHTML = `<span class="chip-dot" style="background:${group.color}"></span>${group.label}`;
+    btn.addEventListener('click', () => {
+      const chart = chartGetter();
+      chart.data.datasets.forEach(ds => { ds.hidden = ds._filterGroup !== group.key; });
+      chart.update(); setActive(btn);
+    });
+    container.appendChild(btn);
+  });
+}
+
+// ---- render everything --------------------------------------------------
+async function renderAll(){
+  const [history, costosHistory] = await Promise.all([loadHistory(), loadCostosHistory()]);
+
+  const all = history.slice().sort((a,b) => parseFlexibleDate(a.date) - parseFlexibleDate(b.date));
+  const labels = all.map(s => s.date);
+
+  // Mercado Exterior / Rosario / Desaguadero read from the permanent
+  // costos archive (costos_history.csv) instead of history.json, since
+  // that's the source that actually keeps every day's values.
+  const costosAll = costosHistory.slice().sort((a,b) => parseFlexibleDate(a.date) - parseFlexibleDate(b.date));
+  const costosLabels = costosAll.map(s => s.date);
+
+  renderMercadoExteriorCharts(costosAll, costosLabels);
+  renderVentaSojaCharts(costosAll, costosLabels, 'rosarioChart', 'rosarioFilters', 'rosarioPeriod', 'rosarioChartsEmpty', 'venta_soja_rosario', 'fob_pto_aguirre', 'FOB Pto Aguirre', 'ros');
+  renderVentaSojaCharts(costosAll, costosLabels, 'limaChart', 'limaFilters', 'limaPeriod', 'limaChartsEmpty', 'venta_soja_lima', 'fob_desaguadero', 'FOB Desaguadero', 'lima');
+  renderGrains(all, labels);
+  renderSoy(all, labels);
+  renderFreight(all, labels);
+}
+
+function renderGrains(all, labels){
+  const colors = ['#D9A441', '#C97A3E', '#8B6A2E', '#B99A5F'];
+  const datasets = [];
+  GRAIN_PRODUCTS.forEach((p, i) => {
+    GRAIN_REGIONS.forEach((r, j) => {
+      const points = all.map(s => (s.grains && s.grains[p.key] && s.grains[p.key][r.key] !== undefined) ? s.grains[p.key][r.key] : null);
+      if (points.some(v => v !== null)) datasets.push(lineDataset(`${p.label} · ${r.label}`, colors[(i*GRAIN_REGIONS.length + j) % colors.length], points));
+    });
+  });
+  registerChart('grains', 'grainsChart', 'grainsFilters', 'grainsPeriod', 'grainsEmpty', labels, datasets);
+}
+
+function renderSoy(all, labels){
+  const colors = ['#8CAE7C', '#6B8F5C', '#4E7A44', '#A9C29B'];
+  const datasets = [];
+  SOY_PRODUCTS.forEach((p, i) => {
+    SOY_REGIONS.forEach((r, j) => {
+      const points = all.map(s => (s.soy_complex && s.soy_complex[p.key] && s.soy_complex[p.key][r.key] !== undefined) ? s.soy_complex[p.key][r.key] : null);
+      if (points.some(v => v !== null)) datasets.push(lineDataset(`${p.label} · ${r.label}`, colors[(i*SOY_REGIONS.length + j) % colors.length], points));
+    });
+  });
+  registerChart('soy', 'soyChart', 'soyFilters', 'soyPeriod', 'soyEmpty', labels, datasets);
+}
+
+function renderFreight(all, labels){
+  const colors = ['#7FA6C4', '#5A85A8'];
+  const datasets = FREIGHT_ROUTES.map((r, i) => {
+    const points = all.map(s => (s.freight && s.freight[r.key] !== undefined) ? s.freight[r.key] : null);
+    return lineDataset(r.label, colors[i % colors.length], points);
+  });
+  registerChart('freight', 'freightChart', 'freightFilters', 'freightPeriod', 'freightEmpty', labels, datasets);
+}
+
+// One combined chart for precios: 9 lines (3 products × 3 markets),
+// filter chips group by market so picking "Chicago" isolates all 3
+// product lines for Chicago at once. Same pattern for bases (6 lines:
+// 3 products × 2 base types), filtered by base type.
+function renderMercadoExteriorCharts(all, labels){
+  const preciosDatasets = [];
+  MERCADO_EXT_PRODUCTS.forEach((p, pIdx) => {
+    MERCADO_EXT_MARKETS.forEach(market => {
+      const points = all.map(s => {
+        const v = s.costos && s.costos.mercado_exterior && s.costos.mercado_exterior.precios && s.costos.mercado_exterior.precios[market.key];
+        return v && v[p.key] !== undefined ? v[p.key] : null;
+      });
+      const ds = lineDataset(`${p.label} · ${market.label}`, MERCADO_EXT_MARKET_SHADES[market.key][pIdx], points);
+      ds._filterGroup = market.key;
+      preciosDatasets.push(ds);
+    });
+  });
+  const marketGroups = MERCADO_EXT_MARKETS.map(m => ({ key: m.key, label: m.label, color: getComputedColorOrVar(m.color) }));
+  registerChart('me-precios', 'mePreciosChart', 'mePreciosFilters', 'mePreciosPeriod', 'mePreciosChartsEmpty', labels, preciosDatasets, marketGroups);
+
+  const baseDatasets = [];
+  MERCADO_EXT_PRODUCTS.forEach((p, pIdx) => {
+    MERCADO_EXT_BASES.forEach(b => {
+      const points = all.map(s => {
+        const v = s.costos && s.costos.mercado_exterior && s.costos.mercado_exterior.base && s.costos.mercado_exterior.base[b.key];
+        return v && v[p.key] !== undefined ? v[p.key] : null;
+      });
+      const ds = lineDataset(`${p.label} · ${b.label}`, MERCADO_EXT_BASE_SHADES[b.key][pIdx], points);
+      ds._filterGroup = b.key;
+      baseDatasets.push(ds);
+    });
+  });
+  const baseGroups = MERCADO_EXT_BASES.map(b => ({ key: b.key, label: b.label, color: getComputedColorOrVar(b.color) }));
+  registerChart('me-base', 'meBaseChart', 'meBaseFilters', 'meBasePeriod', 'meBaseChartsEmpty', labels, baseDatasets, baseGroups);
+}
+
+// Chart.js needs a resolved color, not a CSS var() string — resolve once
+// against :root so the theme stays the single source of truth for colors.
+let _colorCache = null;
+function getComputedColorOrVar(cssVarExpr){
+  if (!_colorCache) _colorCache = getComputedStyle(document.documentElement);
+  const match = /var\((--[a-z-]+)\)/.exec(cssVarExpr);
+  if (!match) return cssVarExpr;
+  return _colorCache.getPropertyValue(match[1]).trim() || cssVarExpr;
+}
+
+// One combined chart per route (Rosario or Lima): FOB, FCA, Costo de
+// exportación and Costo total transporte each contribute 3 product
+// lines, plus Costo de G industrial as a single scalar line — 13 lines
+// total, filtered by metric group ("Todos" / FOB / FCA / Costo G
+// industrial / Costo exp / Costo transporte), same pattern as Mercado
+// Exterior's market/base filters.
+function renderVentaSojaCharts(all, labels, canvasId, filtersId, periodId, emptyId, routeKey, fobMetricKey, fobLabel, chartKey){
+  function productSeries(metric, shades, groupKey, groupLabel){
+    return VENTA_SOJA_PRODUCTS.map((p, idx) => {
+      const points = all.map(s => {
+        const v = s.costos && s.costos[routeKey] && s.costos[routeKey][metric];
+        return v && v[p.key] !== undefined ? v[p.key] : null;
+      });
+      const ds = lineDataset(`${groupLabel} · ${p.label}`, shades[idx], points);
+      ds._filterGroup = groupKey;
+      return ds;
+    });
+  }
+
+  const datasets = [
+    ...productSeries(fobMetricKey, VENTA_METRIC_SHADES.fob, 'fob', fobLabel),
+    ...productSeries('fca_scz_montero', VENTA_METRIC_SHADES.fca_scz_montero, 'fca', 'FCA SCZ (Montero)'),
+    ...productSeries('costo_exp', VENTA_METRIC_SHADES.costo_exp, 'costoexp', 'Costo de exportación'),
+    ...productSeries('costo_total_transporte', VENTA_METRIC_SHADES.costo_total_transporte, 'transp', 'Costo total transporte'),
+  ];
+  const gIndDataset = lineDataset('Costo de G industrial', VENTA_GIND_COLOR,
+    all.map(s => (s.costos && s.costos[routeKey] && s.costos[routeKey].costo_g_industrial !== undefined) ? s.costos[routeKey].costo_g_industrial : null));
+  gIndDataset._filterGroup = 'gind';
+  datasets.push(gIndDataset);
+
+  const groups = [
+    { key: 'fob', label: fobLabel, color: VENTA_METRIC_SHADES.fob[0] },
+    { key: 'fca', label: 'FCA SCZ (Montero)', color: VENTA_METRIC_SHADES.fca_scz_montero[0] },
+    { key: 'gind', label: 'Costo de G industrial', color: VENTA_GIND_COLOR },
+    { key: 'costoexp', label: 'Costo de exportación', color: VENTA_METRIC_SHADES.costo_exp[0] },
+    { key: 'transp', label: 'Costo total transporte', color: VENTA_METRIC_SHADES.costo_total_transporte[0] },
+  ];
+
+  registerChart(chartKey, canvasId, filtersId, periodId, emptyId, labels, datasets, groups);
+}
+
+renderAll();
 </script>
 
 </body>
