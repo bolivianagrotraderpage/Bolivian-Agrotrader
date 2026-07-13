@@ -124,24 +124,6 @@
   }
   .field select{ appearance:none; cursor:pointer; }
   .field select:disabled{ opacity:0.4; cursor:not-allowed; }
-  .toggle-group{ display:flex; gap:10px; }
-  .toggle-btn{
-    flex:1;
-    font-family:'JetBrains Mono', monospace;
-    font-size:13px;
-    padding:12px 14px;
-    border-radius:4px;
-    border:1px solid var(--line);
-    background:var(--bg);
-    color:var(--text-dim);
-    cursor:pointer;
-  }
-  .toggle-btn:hover{ border-color:var(--text-dim); color:var(--text); }
-  .toggle-btn.active{
-    background:var(--costos-dim);
-    color:var(--costos);
-    border-color:var(--costos);
-  }
 
   .result-card{
     background:var(--bg-panel);
@@ -254,23 +236,8 @@
       </div>
 
       <div class="field">
-        <label>¿En silo?</label>
-        <div class="toggle-group">
-          <button type="button" class="toggle-btn" id="siloSiBtn">Sí</button>
-          <button type="button" class="toggle-btn active" id="siloNoBtn">No</button>
-        </div>
-      </div>
-
-      <div class="field" id="siloSelectField" style="display:none;">
-        <label for="siloSelect">Silo</label>
-        <select id="siloSelect">
-          <option value="">Selecciona un silo…</option>
-        </select>
-      </div>
-
-      <div class="field" id="fleteManualField">
-        <label for="fleteManualInput">Costo de flete (USD/Tn)</label>
-        <input type="number" id="fleteManualInput" min="0" max="100" step="0.01" placeholder="Ej. 15">
+        <label for="fleteManualInput">Costo de flete (USD/Tn) — opcional</label>
+        <input type="number" id="fleteManualInput" min="0" step="0.01" placeholder="Ej. 15 (0 si no aplica)">
       </div>
     </div>
 
@@ -443,15 +410,9 @@ async function loadHojaCostos(){
 
 // ---- state + wiring -------------------------------------------------
 let hojaCostos = { silos: [], costoFcaSczGrano: null };
-let enSilo = false;
 
 const volumenInput = document.getElementById('volumenInput');
 const precioInput = document.getElementById('precioInput');
-const siloSiBtn = document.getElementById('siloSiBtn');
-const siloNoBtn = document.getElementById('siloNoBtn');
-const siloSelectField = document.getElementById('siloSelectField');
-const siloSelect = document.getElementById('siloSelect');
-const fleteManualField = document.getElementById('fleteManualField');
 const fleteManualInput = document.getElementById('fleteManualInput');
 const statusBanner = document.getElementById('statusBanner');
 
@@ -460,36 +421,15 @@ function fmt(n, decimals = 2){
   return n.toLocaleString('es-BO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
-function setSiloMode(toSi){
-  enSilo = toSi;
-  siloSiBtn.classList.toggle('active', toSi);
-  siloNoBtn.classList.toggle('active', !toSi);
-  siloSelectField.style.display = toSi ? 'block' : 'none';
-  fleteManualField.style.display = toSi ? 'none' : 'block';
-  recalculate();
-}
-siloSiBtn.addEventListener('click', () => setSiloMode(true));
-siloNoBtn.addEventListener('click', () => setSiloMode(false));
-siloSelect.addEventListener('change', recalculate);
 fleteManualInput.addEventListener('input', recalculate);
 volumenInput.addEventListener('input', recalculate);
 precioInput.addEventListener('input', recalculate);
 
-function populateSiloDropdown(){
-  siloSelect.innerHTML = '<option value="">Selecciona un silo…</option>';
-  hojaCostos.silos.forEach((silo, idx) => {
-    const opt = document.createElement('option');
-    opt.value = String(idx);
-    opt.textContent = silo.flete !== null ? `${silo.name} (Flete ${fmt(silo.flete)} USD/Tn)` : `${silo.name} (sin flete)`;
-    siloSelect.appendChild(opt);
-  });
-  siloSelect.disabled = hojaCostos.silos.length === 0;
-}
-
-// Yes -> Costo FCA SCZ Grano minus the selected silo's Flete.
-// No  -> Costo FCA SCZ Grano PLUS a manually entered Costo de flete (0-100).
-// Margen = Precio ofrecido - Costo de referencia (positive = rentable:
-// the offered price is above what the grain would cost delivered FCA SCZ).
+// Costo de referencia = Costo FCA SCZ Grano + Costo de flete (optional,
+// defaults to 0 when left blank — flete no longer depends on picking a
+// silo). Margen = Precio ofrecido - Costo de referencia (positive =
+// rentable: the offered price is above what the grain would cost
+// delivered FCA SCZ).
 function recalculate(){
   const volumen = parseFloat(volumenInput.value);
   const precio = parseFloat(precioInput.value);
@@ -504,23 +444,23 @@ function recalculate(){
 
   breakdownBase.textContent = hojaCostos.costoFcaSczGrano !== null ? `${fmt(hojaCostos.costoFcaSczGrano)} USD/Tn` : 'sin dato';
 
-  let selectedSilo = null;
-  let fleteManual = null;
-  if (enSilo) {
-    if (siloSelect.value !== '') selectedSilo = hojaCostos.silos[Number(siloSelect.value)];
-  } else {
-    const raw = parseFloat(fleteManualInput.value);
-    if (!Number.isNaN(raw) && raw >= 0 && raw <= 100) fleteManual = raw;
+  // Optional field: blank means 0. Only a genuinely invalid entry (not
+  // blank, but not a valid non-negative number) blocks the calculation.
+  const fleteRaw = fleteManualInput.value.trim();
+  let flete = 0;
+  let fleteInvalido = false;
+  if (fleteRaw !== ''){
+    const parsed = parseFloat(fleteRaw);
+    if (Number.isNaN(parsed) || parsed < 0) fleteInvalido = true;
+    else flete = parsed;
   }
-  const fleteAplicado = enSilo ? (selectedSilo ? selectedSilo.flete : null) : fleteManual;
 
   breakdownFleteRow.style.display = 'flex';
-  breakdownFlete.textContent = fleteAplicado !== null ? `${enSilo ? '-' : '+'} ${fmt(fleteAplicado)} USD/Tn` : '—';
+  breakdownFlete.textContent = `+ ${fmt(flete)} USD/Tn`;
 
   const missingReasons = [];
   if (hojaCostos.costoFcaSczGrano === null) missingReasons.push('sin dato de Costo FCA SCZ Grano');
-  if (enSilo && !selectedSilo) missingReasons.push('selecciona un silo');
-  if (!enSilo && fleteManual === null) missingReasons.push('ingresa el costo de flete (0-100)');
+  if (fleteInvalido) missingReasons.push('el costo de flete debe ser 0 o mayor');
   if (Number.isNaN(volumen) || volumen <= 0) missingReasons.push('ingresa el volumen');
   if (Number.isNaN(precio) || precio <= 0) missingReasons.push('ingresa el precio ofrecido');
 
@@ -529,16 +469,14 @@ function recalculate(){
     badge.textContent = 'Completa los datos';
     marginEl.textContent = '—'; marginEl.className = 'value';
     totalEl.textContent = '—'; totalEl.className = 'value';
-    breakdownRef.textContent = (hojaCostos.costoFcaSczGrano !== null && fleteAplicado !== null)
-      ? `${fmt(enSilo ? hojaCostos.costoFcaSczGrano - fleteAplicado : hojaCostos.costoFcaSczGrano + fleteAplicado)} USD/Tn`
-      : (hojaCostos.costoFcaSczGrano !== null ? `${fmt(hojaCostos.costoFcaSczGrano)} USD/Tn` : '—');
+    breakdownRef.textContent = hojaCostos.costoFcaSczGrano !== null && !fleteInvalido
+      ? `${fmt(hojaCostos.costoFcaSczGrano + flete)} USD/Tn`
+      : '—';
     breakdownPrecio.textContent = !Number.isNaN(precio) ? `${fmt(precio)} USD/Tn` : '—';
     return;
   }
 
-  const referencia = enSilo
-    ? hojaCostos.costoFcaSczGrano - fleteAplicado
-    : hojaCostos.costoFcaSczGrano + fleteAplicado;
+  const referencia = hojaCostos.costoFcaSczGrano + flete;
   const margen = precio - referencia;
   const gananciaTotal = margen * volumen;
   const rentable = margen > 0;
@@ -557,7 +495,6 @@ function recalculate(){
 async function init(){
   try {
     hojaCostos = await loadHojaCostos();
-    populateSiloDropdown();
     if (hojaCostos.costoFcaSczGrano === null){
       statusBanner.className = 'status-banner error';
       statusBanner.textContent = 'La hoja no tiene un valor válido de Costo FCA SCZ Grano en este momento (revisa la hoja de cálculo).';
