@@ -271,6 +271,17 @@
     color:var(--text-dim);
     margin-top:6px;
   }
+  /* Min/Max footer on a FOB card, e.g. FOB Desaguadero — Min bottom-left,
+     Max bottom-right, per the provided sketch. */
+  .fob-card .fob-card-body .minmax-row{
+    display:flex;
+    justify-content:space-between;
+    margin-top:12px;
+    padding-top:10px;
+    border-top:1px dashed var(--line);
+    font-size:10px;
+    color:var(--text-dim);
+  }
   /* split card body — two subsections side by side under one header,
      e.g. Mercado Exterior's "Mercado" value next to its "FCA SC" value */
   .fob-card .fob-card-body.split{
@@ -835,10 +846,11 @@ function renderMercadoExterior(all){
   });
 }
 
-function buildFobCard(l1, l2, value, unit, color, extraClass){
+function buildFobCard(l1, l2, value, unit, color, extraClass, minVal, maxVal){
   const card = document.createElement('div');
   card.className = 'fob-card' + (extraClass ? ' ' + extraClass : '');
   card.style.setProperty('--card-color', color);
+  const showMinMax = minVal !== undefined || maxVal !== undefined;
   card.innerHTML = `
     <div class="fob-card-header">
       <div class="l1">${l1}</div>
@@ -847,6 +859,11 @@ function buildFobCard(l1, l2, value, unit, color, extraClass){
     <div class="fob-card-body">
       <div class="value${value === '—' ? ' placeholder' : ''}">${value}</div>
       <div class="unit">${unit}</div>
+      ${showMinMax ? `
+      <div class="minmax-row">
+        <span class="minmax-min">Min ${minVal !== undefined && minVal !== null ? minVal.toFixed(2) : '—'}</span>
+        <span class="minmax-max">Max ${maxVal !== undefined && maxVal !== null ? maxVal.toFixed(2) : '—'}</span>
+      </div>` : ''}
     </div>
   `;
   return card;
@@ -891,7 +908,10 @@ function computeIndG(granoVal, costoVal){
 // includeDecision is true — a wide "Costo de G industrial" box (spans the
 // Aceite+Solvente columns) and an INDUSTRIAL/GRANOS result box (Grano
 // column). That comparison only applies to the FCA SCZ (Montero) stage.
-function renderVentaSojaSection(containerId, metricLabel, values, costoGIndustrial, date, includeDecision){
+// `minMax` (optional) is {min:{grano,solvente,aceite}, max:{...}} — only
+// passed for the FOB Desaguadero row, to show the Min/Max footer from
+// the "Recepción de datos" sheet.
+function renderVentaSojaSection(containerId, metricLabel, values, costoGIndustrial, date, includeDecision, minMax){
   const grid = document.getElementById(containerId);
   grid.innerHTML = '';
   if (!values) return;
@@ -899,11 +919,13 @@ function renderVentaSojaSection(containerId, metricLabel, values, costoGIndustri
 
   VENTA_SOJA_PRODUCTS.forEach(p => {
     const val = values[p.key];
+    const minVal = minMax && minMax.min ? minMax.min[p.key] : undefined;
+    const maxVal = minMax && minMax.max ? minMax.max[p.key] : undefined;
     grid.appendChild(buildFobCard(
       metricLabel, p.label,
       val !== undefined ? val.toFixed(2) : '—',
       val !== undefined ? `USD/tm · ${displayDate}` : 'sin dato',
-      p.color
+      p.color, null, minVal, maxVal
     ));
   });
 
@@ -967,7 +989,10 @@ function renderCostosLima(all){
   const venta = latestLima.costos.venta_soja_lima;
   const costoGIndustrial = venta.costo_g_industrial;
 
-  renderVentaSojaSection('limaGridFob', 'FOB Desaguadero', venta.fob_desaguadero, costoGIndustrial, latestLima.date, false);
+  const recepcionData = all.filter(s => s.costos && s.costos.recepcion_datos);
+  const minMax = recepcionData.length ? recepcionData[recepcionData.length - 1].costos.recepcion_datos : null;
+
+  renderVentaSojaSection('limaGridFob', 'FOB Desaguadero', venta.fob_desaguadero, costoGIndustrial, latestLima.date, false, minMax);
   renderVentaSojaSection('limaGridFca', 'FCA SCZ (Montero)', venta.fca_scz_montero, costoGIndustrial, latestLima.date, true);
 }
 
