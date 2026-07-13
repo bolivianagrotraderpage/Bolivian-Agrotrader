@@ -1002,6 +1002,10 @@
           "solvente": 365.55,
           "aceite": 1253.65
         }
+      },
+      "resumen_operaciones": {
+        "costo_fca_scz_grano": 332.98,
+        "costo_de_maquila": 45.0
       }
     }
   },
