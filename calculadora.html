@@ -74,7 +74,7 @@
   }
   .page-nav a:hover{color:var(--text); border-color:var(--text-dim);}
   .page-nav a.active{background:var(--bg-panel); color:var(--text); border-color:var(--text-dim);}
-  main{max-width:720px; margin:0 auto; padding:0 32px;}
+  main{max-width:1080px; margin:0 auto; padding:0 32px;}
   section{margin-top:40px;}
   section > h2{font-size:20px; margin-bottom:4px;}
   .sub{color:var(--text-dim); font-size:12px; margin-bottom:20px;}
@@ -97,6 +97,7 @@
     border-radius:var(--radius);
     padding:24px;
     margin-bottom:24px;
+    max-width:520px;
   }
   .field{ margin-bottom:20px; }
   .field:last-child{ margin-bottom:0; }
@@ -125,6 +126,15 @@
   .field select{ appearance:none; cursor:pointer; }
   .field select:disabled{ opacity:0.4; cursor:not-allowed; }
 
+  .destino-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:20px;
+  }
+  @media (max-width:900px){
+    .destino-grid{ grid-template-columns:1fr; }
+  }
+
   .result-card{
     background:var(--bg-panel);
     border:1px solid var(--line);
@@ -132,15 +142,21 @@
     padding:24px;
     text-align:center;
   }
+  .result-card .destino-label{
+    font-family:'Fraunces', serif;
+    font-size:16px;
+    color:var(--text);
+    margin-bottom:16px;
+  }
   .result-badge{
     display:inline-block;
     font-family:'Fraunces', serif;
-    font-size:20px;
+    font-size:16px;
     font-weight:500;
     letter-spacing:0.02em;
-    padding:10px 24px;
+    padding:8px 18px;
     border-radius:999px;
-    margin-bottom:20px;
+    margin-bottom:18px;
   }
   .result-badge.rentable{ background:var(--good-dim); color:var(--good); }
   .result-badge.no-rentable{ background:var(--bad-dim); color:var(--bad); }
@@ -148,19 +164,19 @@
   .result-numbers{
     display:grid;
     grid-template-columns:1fr 1fr;
-    gap:16px;
-    margin-bottom:20px;
+    gap:12px;
+    margin-bottom:18px;
   }
   .result-number .value{
     font-family:'Fraunces', serif;
-    font-size:24px;
+    font-size:19px;
     color:var(--text);
     line-height:1;
   }
   .result-number .value.good{ color:var(--good); }
   .result-number .value.bad{ color:var(--bad); }
   .result-number .label{
-    font-size:10.5px;
+    font-size:9.5px;
     text-transform:uppercase;
     letter-spacing:0.06em;
     color:var(--text-dim);
@@ -169,20 +185,22 @@
   .breakdown{
     text-align:left;
     border-top:1px dashed var(--line);
-    padding-top:16px;
-    font-size:12.5px;
+    padding-top:14px;
+    font-size:11.5px;
   }
   .breakdown-row{
     display:flex;
     justify-content:space-between;
-    padding:5px 0;
+    padding:4px 0;
     color:var(--text-dim);
+    gap:8px;
   }
+  .breakdown-row span:first-child{ flex-shrink:0; }
   .breakdown-row.total{
     color:var(--text);
     border-top:1px solid var(--line);
-    margin-top:6px;
-    padding-top:10px;
+    margin-top:5px;
+    padding-top:9px;
     font-weight:700;
   }
   .status-banner{
@@ -192,13 +210,13 @@
     border:1px dashed var(--line);
     border-radius:var(--radius);
     margin-bottom:24px;
+    max-width:520px;
   }
   .status-banner.error{ color:var(--costos); border-color:var(--costos-dim); }
   @media (max-width:640px){
     header{padding:32px 20px 24px;}
     main{padding:0 20px;}
     header h1{font-size:26px;}
-    .result-numbers{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -207,7 +225,7 @@
 <header>
   <div class="eyebrow">Reporte de mercado · herramienta</div>
   <h1>Precios agropecuarios — Bolivia</h1>
-  <p>Calculadora de rentabilidad — Costo FCA SCZ Grano vs. precio ofrecido</p>
+  <p>Calculadora de rentabilidad — Costo FCA SCZ Grano vs. precio ofrecido, por destino</p>
   <nav class="page-nav">
     <a href="index.html">Actual</a>
     <a href="historico.html">Histórico</a>
@@ -220,9 +238,9 @@
   <section>
     <span class="group-label">Calculadora</span>
     <h2>¿Es rentable la operación?</h2>
-    <div class="sub">Compara el precio que te ofrecen contra el Costo FCA SCZ Grano de la "Hoja de costos", restando el flete del silo correspondiente si aplica.</div>
+    <div class="sub">Elige un silo para traer su flete a cada destino (Puerto Aguirre, Desaguadero, Yacuiba) y compáralo contra el precio ofrecido.</div>
 
-    <div id="statusBanner" class="status-banner">Cargando datos de la Hoja de costos…</div>
+    <div id="statusBanner" class="status-banner">Cargando datos…</div>
 
     <div class="calc-card">
       <div class="field">
@@ -236,91 +254,87 @@
       </div>
 
       <div class="field">
-        <label for="fleteManualInput">Costo de flete (USD/Tn) — opcional</label>
-        <input type="number" id="fleteManualInput" min="0" step="0.01" placeholder="Ej. 15 (0 si no aplica)">
+        <label for="siloSelect">Silo</label>
+        <select id="siloSelect">
+          <option value="">Selecciona un silo…</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="fleteManualInput">Costo de flete adicional (USD/Tn) — opcional</label>
+        <input type="number" id="fleteManualInput" min="0" step="0.01" placeholder="Ej. 5 (se suma al flete del silo)">
       </div>
     </div>
 
-    <div class="result-card">
-      <div id="resultBadge" class="result-badge pending">Completa los datos</div>
-      <div class="result-numbers">
-        <div class="result-number">
-          <div class="value" id="marginValue">—</div>
-          <div class="label">Margen USD/Tn</div>
-        </div>
-        <div class="result-number">
-          <div class="value" id="totalValue">—</div>
-          <div class="label">Ganancia total USD</div>
-        </div>
-      </div>
-      <div class="breakdown">
-        <div class="breakdown-row">
-          <span>Costo FCA SCZ Grano</span>
-          <span id="breakdownBase">—</span>
-        </div>
-        <div class="breakdown-row" id="breakdownFleteRow" style="display:none;">
-          <span>Flete</span>
-          <span id="breakdownFlete">—</span>
-        </div>
-        <div class="breakdown-row total">
-          <span>Costo de referencia</span>
-          <span id="breakdownRef">—</span>
-        </div>
-        <div class="breakdown-row">
-          <span>Precio ofrecido</span>
-          <span id="breakdownPrecio">—</span>
-        </div>
-      </div>
-    </div>
+    <div class="destino-grid" id="destinoGrid"></div>
   </section>
 
 </main>
 
 <script>
-// PASTE the published CSV link for the "Hoja de costos" tab here:
-// File > Share > Publish to web > (Hoja de costos) > Comma-separated
-// values (.csv). Leave as the placeholder to see the "not configured"
-// state instead of a fetch error.
+// PASTE/confirm the published CSV links for the two sheets this page
+// reads live in the browser:
+//   HOJA_COSTOS: "Hoja de costos" tab -> Costo FCA SCZ Grano.
+//   AUX_SILOS:   "AUX" tab -> per-silo Destino Pto Aguirre / Desaguadero
+//                / Yacuiba USD/Tn (the flete from that silo to each
+//                destination).
+// File > Share > Publish to web > (sheet) > Comma-separated values (.csv).
 const HOJA_COSTOS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRHmO9eaO2vX_29kL7pp80l9exAdrPXz4sW66PS8yLy_81LLNjUgZtpzkAV6rFvSQ/pub?gid=633943559&single=true&output=csv";
+const AUX_SILOS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRHmO9eaO2vX_29kL7pp80l9exAdrPXz4sW66PS8yLy_81LLNjUgZtpzkAV6rFvSQ/pub?gid=626177753&single=true&output=csv";
 
-// ---- CSV parsing (quote-aware, so cells with embedded commas/quotes
-// don't break the split) ----
-function parseCsvLine(line){
-  const result = [];
+const DESTINOS = [
+  { key: 'pto_aguirre', label: 'Puerto Aguirre' },
+  { key: 'desaguadero', label: 'Desaguadero' },
+  { key: 'yacuiba', label: 'Yacuiba' },
+];
+
+// ---- CSV parsing --------------------------------------------------------
+// Parses the whole CSV text as one stream (not line-by-line first), so a
+// quoted cell containing an embedded newline (common with wrapped header
+// text, e.g. "Destino Pto\nAguirre\nUSD/Tn") doesn't get split into two
+// rows by mistake.
+function parseCsvFull(text){
+  const rows = [];
+  let row = [];
   let cur = '';
   let inQuotes = false;
-  for (let i = 0; i < line.length; i++){
-    const c = line[i];
+  for (let i = 0; i < text.length; i++){
+    const c = text[i];
     if (inQuotes){
       if (c === '"'){
-        if (line[i + 1] === '"'){ cur += '"'; i++; }
+        if (text[i + 1] === '"'){ cur += '"'; i++; }
         else inQuotes = false;
-      } else cur += c;
+      } else {
+        cur += c;
+      }
+    } else if (c === '"'){
+      inQuotes = true;
+    } else if (c === ','){
+      row.push(cur); cur = '';
+    } else if (c === '\r'){
+      // skip - handled on the following \n
+    } else if (c === '\n'){
+      row.push(cur); cur = '';
+      rows.push(row); row = [];
     } else {
-      if (c === '"') inQuotes = true;
-      else if (c === ','){ result.push(cur); cur = ''; }
-      else cur += c;
+      cur += c;
     }
   }
-  result.push(cur);
-  return result;
+  if (cur !== '' || row.length > 0){ row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(c => c.trim() !== ''));
 }
 
-function parseCsv(text){
-  return text.split(/\r?\n/).filter(l => l.length > 0).map(parseCsvLine);
-}
-
+// Collapses all whitespace (including embedded newlines from wrapped
+// header cells) into single spaces before comparing.
 function normalize(s){
-  return (s || '').trim().toLowerCase();
+  return (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
 // Treats "", "-", and error strings like "#DIV/0!" as no-data.
-// Handles both number formats that show up across these sheets:
-// standard "1234.56" and Spanish-locale "1.234,56" / "335,19" (period as
+// Handles both number formats that show up across these sheets: standard
+// "1234.56" and Spanish-locale "1.234,56" / "335,19" (period as
 // thousands separator, comma as decimal). Whichever separator appears
-// LAST is the decimal point; if only a comma is present, it's treated
-// as the decimal separator (matches this sheet's "335,19" style, not
-// "4,255" thousands-style, which doesn't appear here).
+// LAST is the decimal point; a comma with no dot is treated as decimal.
 function toFloat(v){
   if (v === undefined || v === null) return null;
   let cleaned = v.trim();
@@ -330,52 +344,20 @@ function toFloat(v){
   const hasDot = cleaned.includes('.');
   if (hasComma && hasDot) {
     cleaned = cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')
-      ? cleaned.replace(/\./g, '').replace(',', '.')  // "1.234,56" -> "1234.56"
-      : cleaned.replace(/,/g, '');                     // "1,234.56" -> "1234.56"
+      ? cleaned.replace(/\./g, '').replace(',', '.')
+      : cleaned.replace(/,/g, '');
   } else if (hasComma) {
-    cleaned = cleaned.replace(',', '.');                // "335,19" -> "335.19"
+    cleaned = cleaned.replace(',', '.');
   }
 
   const n = parseFloat(cleaned);
   return Number.isNaN(n) ? null : n;
 }
 
-// Parses the "Hoja de costos" sheet:
-//   - a per-silo table (finds the header row containing "Silo" and a
-//     "Flete" column, then reads each silo's name + Flete USD/Tn until
-//     the "Total" row)
-//   - the "Costo FCA SCZ GRANO" scalar (label in one cell, value in the
-//     next numeric cell to its right, wherever it sits in the sheet)
-// A dash in the Flete column means "no freight" (0), matching the
-// sheet's own convention (e.g. Silo Montero) — everywhere else a dash
-// or #DIV/0! means genuinely no data.
+// Parses the "Hoja de costos" sheet's Costo FCA SCZ GRANO scalar (label
+// in one cell, value in the next numeric cell to its right).
 function parseHojaCostosCsv(csvText){
-  const rows = parseCsv(csvText);
-
-  let headerIdx = -1, siloCol = -1, fleteCol = -1;
-  for (let i = 0; i < rows.length; i++){
-    const norm = rows[i].map(normalize);
-    const sIdx = norm.findIndex(c => c === 'silo');
-    const fIdx = norm.findIndex(c => c.includes('flete'));
-    if (sIdx !== -1 && fIdx !== -1){
-      headerIdx = i; siloCol = sIdx; fleteCol = fIdx;
-      break;
-    }
-  }
-
-  const silos = [];
-  if (headerIdx !== -1){
-    for (let i = headerIdx + 1; i < rows.length; i++){
-      const row = rows[i];
-      const name = (row[siloCol] || '').trim();
-      if (!name) continue;
-      if (normalize(name) === 'total') break;
-      const fleteRaw = (row[fleteCol] || '').trim();
-      const flete = fleteRaw === '-' ? 0 : toFloat(fleteRaw);
-      silos.push({ name, flete });
-    }
-  }
-
+  const rows = parseCsvFull(csvText);
   let costoFcaSczGrano = null;
   for (const row of rows){
     for (let j = 0; j < row.length; j++){
@@ -388,127 +370,241 @@ function parseHojaCostosCsv(csvText){
       }
     }
   }
-
-  return { silos, costoFcaSczGrano };
+  return { costoFcaSczGrano };
 }
 
-async function loadHojaCostos(){
-  if (!HOJA_COSTOS_CSV_URL || HOJA_COSTOS_CSV_URL.startsWith('PASTE_')){
+// Parses the "AUX" sheet: finds the header row containing the silo-name
+// column ("Silos de almacenamiento") and the three "Destino ... USD/Tn"
+// columns, then reads each silo's name plus its per-destino flete. A
+// missing/blank destino value stays null (this sheet doesn't use "-" to
+// mean 0 the way "Hoja de costos" does for Flete) so a section can show
+// "sin dato" instead of silently treating it as free freight.
+const DESTINO_HEADER_MATCHERS = {
+  pto_aguirre: n => n.includes('destino') && (n.includes('pto aguirre') || n.includes('puerto aguirre')),
+  desaguadero: n => n.includes('destino') && n.includes('desaguadero'),
+  yacuiba: n => n.includes('destino') && n.includes('yacuiba'),
+};
+
+function parseAuxSilosCsv(csvText){
+  const rows = parseCsvFull(csvText);
+
+  let headerIdx = -1, siloCol = -1;
+  const destCols = {};
+  for (let i = 0; i < rows.length; i++){
+    const norm = rows[i].map(normalize);
+    const sIdx = norm.findIndex(c => c.includes('silos de almacenamiento') || c === 'silo');
+    if (sIdx === -1) continue;
+    const found = {};
+    norm.forEach((c, j) => {
+      for (const [key, matches] of Object.entries(DESTINO_HEADER_MATCHERS)){
+        if (matches(c)) found[key] = j;
+      }
+    });
+    if (Object.keys(found).length > 0){
+      headerIdx = i; siloCol = sIdx; Object.assign(destCols, found);
+      break;
+    }
+  }
+
+  const silos = [];
+  if (headerIdx !== -1){
+    for (let i = headerIdx + 1; i < rows.length; i++){
+      const row = rows[i];
+      const name = (row[siloCol] || '').trim();
+      if (!name) continue;
+      const destinos = {};
+      for (const [key, col] of Object.entries(destCols)){
+        destinos[key] = toFloat(row[col]);
+      }
+      silos.push({ name, destinos });
+    }
+  }
+  return silos;
+}
+
+async function fetchCsv(url, notConfiguredCode){
+  if (!url || url.startsWith('PASTE_')){
     const err = new Error('URL not configured');
-    err.code = 'NOT_CONFIGURED';
+    err.code = notConfiguredCode;
     throw err;
   }
-  const res = await fetch(HOJA_COSTOS_CSV_URL, { cache: 'no-store' });
+  const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok){
     const err = new Error('Fetch failed');
     err.code = 'FETCH_FAILED';
     throw err;
   }
-  const text = await res.text();
-  return parseHojaCostosCsv(text);
+  return res.text();
 }
 
-// ---- state + wiring -------------------------------------------------
-let hojaCostos = { silos: [], costoFcaSczGrano: null };
+// ---- state + DOM ----------------------------------------------------
+let costoFcaSczGrano = null;
+let auxSilos = [];
 
 const volumenInput = document.getElementById('volumenInput');
 const precioInput = document.getElementById('precioInput');
+const siloSelect = document.getElementById('siloSelect');
 const fleteManualInput = document.getElementById('fleteManualInput');
 const statusBanner = document.getElementById('statusBanner');
+const destinoGrid = document.getElementById('destinoGrid');
 
 function fmt(n, decimals = 2){
   if (n === null || n === undefined || Number.isNaN(n)) return '—';
   return n.toLocaleString('es-BO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
+// Builds the three destino result-card shells once; recalculate() only
+// updates their contents afterward.
+function buildDestinoCards(){
+  destinoGrid.innerHTML = '';
+  DESTINOS.forEach(d => {
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    card.innerHTML = `
+      <div class="destino-label">${d.label}</div>
+      <div id="badge-${d.key}" class="result-badge pending">Completa los datos</div>
+      <div class="result-numbers">
+        <div class="result-number">
+          <div class="value" id="margin-${d.key}">—</div>
+          <div class="label">Margen USD/Tn</div>
+        </div>
+        <div class="result-number">
+          <div class="value" id="total-${d.key}">—</div>
+          <div class="label">Ganancia total USD</div>
+        </div>
+      </div>
+      <div class="breakdown">
+        <div class="breakdown-row"><span>Costo FCA SCZ Grano</span><span id="base-${d.key}">—</span></div>
+        <div class="breakdown-row"><span>Flete del silo</span><span id="fleteSilo-${d.key}">—</span></div>
+        <div class="breakdown-row"><span>Flete adicional</span><span id="fleteManual-${d.key}">—</span></div>
+        <div class="breakdown-row total"><span>Costo de referencia</span><span id="ref-${d.key}">—</span></div>
+        <div class="breakdown-row"><span>Precio ofrecido</span><span id="precio-${d.key}">—</span></div>
+      </div>
+    `;
+    destinoGrid.appendChild(card);
+  });
+}
+
+function populateSiloDropdown(){
+  siloSelect.innerHTML = '<option value="">Selecciona un silo…</option>';
+  auxSilos.forEach((silo, idx) => {
+    const opt = document.createElement('option');
+    opt.value = String(idx);
+    opt.textContent = silo.name;
+    siloSelect.appendChild(opt);
+  });
+  siloSelect.disabled = auxSilos.length === 0;
+}
+
+siloSelect.addEventListener('change', recalculate);
 fleteManualInput.addEventListener('input', recalculate);
 volumenInput.addEventListener('input', recalculate);
 precioInput.addEventListener('input', recalculate);
 
-// Costo de referencia = Costo FCA SCZ Grano + Costo de flete (optional,
-// defaults to 0 when left blank — flete no longer depends on picking a
-// silo). Margen = Precio ofrecido - Costo de referencia (positive =
-// rentable: the offered price is above what the grain would cost
-// delivered FCA SCZ).
+// Per destino: Costo de referencia = Costo FCA SCZ Grano + Flete del
+// silo a ese destino + Flete adicional (opcional, 0 por defecto).
+// Margen = Precio ofrecido - Costo de referencia (positive = rentable).
+// Silo selection is required for the per-destino comparison to mean
+// anything; the manual flete is an optional add-on on top of it.
 function recalculate(){
   const volumen = parseFloat(volumenInput.value);
   const precio = parseFloat(precioInput.value);
-  const badge = document.getElementById('resultBadge');
-  const marginEl = document.getElementById('marginValue');
-  const totalEl = document.getElementById('totalValue');
-  const breakdownBase = document.getElementById('breakdownBase');
-  const breakdownFleteRow = document.getElementById('breakdownFleteRow');
-  const breakdownFlete = document.getElementById('breakdownFlete');
-  const breakdownRef = document.getElementById('breakdownRef');
-  const breakdownPrecio = document.getElementById('breakdownPrecio');
+  const selectedSilo = siloSelect.value !== '' ? auxSilos[Number(siloSelect.value)] : null;
 
-  breakdownBase.textContent = hojaCostos.costoFcaSczGrano !== null ? `${fmt(hojaCostos.costoFcaSczGrano)} USD/Tn` : 'sin dato';
-
-  // Optional field: blank means 0. Only a genuinely invalid entry (not
-  // blank, but not a valid non-negative number) blocks the calculation.
-  const fleteRaw = fleteManualInput.value.trim();
-  let flete = 0;
-  let fleteInvalido = false;
-  if (fleteRaw !== ''){
-    const parsed = parseFloat(fleteRaw);
-    if (Number.isNaN(parsed) || parsed < 0) fleteInvalido = true;
-    else flete = parsed;
+  const fleteManualRaw = fleteManualInput.value.trim();
+  let fleteManual = 0;
+  let fleteManualInvalido = false;
+  if (fleteManualRaw !== ''){
+    const parsed = parseFloat(fleteManualRaw);
+    if (Number.isNaN(parsed) || parsed < 0) fleteManualInvalido = true;
+    else fleteManual = parsed;
   }
 
-  breakdownFleteRow.style.display = 'flex';
-  breakdownFlete.textContent = `+ ${fmt(flete)} USD/Tn`;
+  DESTINOS.forEach(d => {
+    const badge = document.getElementById(`badge-${d.key}`);
+    const marginEl = document.getElementById(`margin-${d.key}`);
+    const totalEl = document.getElementById(`total-${d.key}`);
+    const baseEl = document.getElementById(`base-${d.key}`);
+    const fleteSiloEl = document.getElementById(`fleteSilo-${d.key}`);
+    const fleteManualEl = document.getElementById(`fleteManual-${d.key}`);
+    const refEl = document.getElementById(`ref-${d.key}`);
+    const precioEl = document.getElementById(`precio-${d.key}`);
 
-  const missingReasons = [];
-  if (hojaCostos.costoFcaSczGrano === null) missingReasons.push('sin dato de Costo FCA SCZ Grano');
-  if (fleteInvalido) missingReasons.push('el costo de flete debe ser 0 o mayor');
-  if (Number.isNaN(volumen) || volumen <= 0) missingReasons.push('ingresa el volumen');
-  if (Number.isNaN(precio) || precio <= 0) missingReasons.push('ingresa el precio ofrecido');
+    baseEl.textContent = costoFcaSczGrano !== null ? `${fmt(costoFcaSczGrano)} USD/Tn` : 'sin dato';
+    fleteManualEl.textContent = `+ ${fmt(fleteManual)} USD/Tn`;
 
-  if (missingReasons.length > 0){
-    badge.className = 'result-badge pending';
-    badge.textContent = 'Completa los datos';
-    marginEl.textContent = '—'; marginEl.className = 'value';
-    totalEl.textContent = '—'; totalEl.className = 'value';
-    breakdownRef.textContent = hojaCostos.costoFcaSczGrano !== null && !fleteInvalido
-      ? `${fmt(hojaCostos.costoFcaSczGrano + flete)} USD/Tn`
-      : '—';
-    breakdownPrecio.textContent = !Number.isNaN(precio) ? `${fmt(precio)} USD/Tn` : '—';
-    return;
-  }
+    const fleteSilo = selectedSilo ? selectedSilo.destinos[d.key] : undefined;
 
-  const referencia = hojaCostos.costoFcaSczGrano + flete;
-  const margen = precio - referencia;
-  const gananciaTotal = margen * volumen;
-  const rentable = margen > 0;
+    const missingReasons = [];
+    if (costoFcaSczGrano === null) missingReasons.push('sin dato de Costo FCA SCZ Grano');
+    if (!selectedSilo) missingReasons.push('selecciona un silo');
+    else if (fleteSilo === null || fleteSilo === undefined) missingReasons.push(`sin dato de flete a ${d.label}`);
+    if (fleteManualInvalido) missingReasons.push('el flete adicional debe ser 0 o mayor');
+    if (Number.isNaN(volumen) || volumen <= 0) missingReasons.push('ingresa el volumen');
+    if (Number.isNaN(precio) || precio <= 0) missingReasons.push('ingresa el precio ofrecido');
 
-  breakdownRef.textContent = `${fmt(referencia)} USD/Tn`;
-  breakdownPrecio.textContent = `${fmt(precio)} USD/Tn`;
+    fleteSiloEl.textContent = (fleteSilo !== null && fleteSilo !== undefined) ? `+ ${fmt(fleteSilo)} USD/Tn` : '—';
+    precioEl.textContent = !Number.isNaN(precio) ? `${fmt(precio)} USD/Tn` : '—';
 
-  badge.className = 'result-badge ' + (rentable ? 'rentable' : 'no-rentable');
-  badge.textContent = rentable ? 'RENTABLE' : 'NO RENTABLE';
-  marginEl.textContent = `${margen >= 0 ? '' : '−'}${fmt(Math.abs(margen))}`;
-  marginEl.className = 'value ' + (rentable ? 'good' : 'bad');
-  totalEl.textContent = `${gananciaTotal >= 0 ? '' : '−'}${fmt(Math.abs(gananciaTotal), 2)}`;
-  totalEl.className = 'value ' + (rentable ? 'good' : 'bad');
+    if (missingReasons.length > 0){
+      badge.className = 'result-badge pending';
+      badge.textContent = !selectedSilo ? 'Selecciona un silo' : 'Completa los datos';
+      marginEl.textContent = '—'; marginEl.className = 'value';
+      totalEl.textContent = '—'; totalEl.className = 'value';
+      refEl.textContent = (costoFcaSczGrano !== null && fleteSilo !== null && fleteSilo !== undefined && !fleteManualInvalido)
+        ? `${fmt(costoFcaSczGrano + fleteSilo + fleteManual)} USD/Tn`
+        : '—';
+      return;
+    }
+
+    const referencia = costoFcaSczGrano + fleteSilo + fleteManual;
+    const margen = precio - referencia;
+    const gananciaTotal = margen * volumen;
+    const rentable = margen > 0;
+
+    refEl.textContent = `${fmt(referencia)} USD/Tn`;
+
+    badge.className = 'result-badge ' + (rentable ? 'rentable' : 'no-rentable');
+    badge.textContent = rentable ? 'RENTABLE' : 'NO RENTABLE';
+    marginEl.textContent = `${margen >= 0 ? '' : '−'}${fmt(Math.abs(margen))}`;
+    marginEl.className = 'value ' + (rentable ? 'good' : 'bad');
+    totalEl.textContent = `${gananciaTotal >= 0 ? '' : '−'}${fmt(Math.abs(gananciaTotal), 2)}`;
+    totalEl.className = 'value ' + (rentable ? 'good' : 'bad');
+  });
 }
 
 async function init(){
+  buildDestinoCards();
+  const errors = [];
+
   try {
-    hojaCostos = await loadHojaCostos();
-    if (hojaCostos.costoFcaSczGrano === null){
-      statusBanner.className = 'status-banner error';
-      statusBanner.textContent = 'La hoja no tiene un valor válido de Costo FCA SCZ Grano en este momento (revisa la hoja de cálculo).';
-    } else {
-      statusBanner.style.display = 'none';
-    }
+    const text = await fetchCsv(HOJA_COSTOS_CSV_URL, 'HOJA_NOT_CONFIGURED');
+    costoFcaSczGrano = parseHojaCostosCsv(text).costoFcaSczGrano;
+    if (costoFcaSczGrano === null) errors.push('La "Hoja de costos" no tiene un valor válido de Costo FCA SCZ Grano en este momento.');
   } catch (err) {
-    statusBanner.className = 'status-banner error';
-    if (err.code === 'NOT_CONFIGURED'){
-      statusBanner.textContent = 'Falta configurar el enlace CSV de la Hoja de costos en el código de esta página.';
-    } else {
-      statusBanner.textContent = 'No se pudo cargar la Hoja de costos. Verifica que el enlace esté publicado como CSV y accesible.';
-    }
+    errors.push(err.code === 'HOJA_NOT_CONFIGURED'
+      ? 'Falta configurar el enlace CSV de la Hoja de costos.'
+      : 'No se pudo cargar la Hoja de costos.');
   }
+
+  try {
+    const text = await fetchCsv(AUX_SILOS_CSV_URL, 'AUX_NOT_CONFIGURED');
+    auxSilos = parseAuxSilosCsv(text);
+    populateSiloDropdown();
+    if (auxSilos.length === 0) errors.push('No se encontraron silos en la hoja AUX (revisa que el enlace apunte a la pestaña correcta).');
+  } catch (err) {
+    errors.push(err.code === 'AUX_NOT_CONFIGURED'
+      ? 'Falta configurar el enlace CSV de la hoja AUX de silos.'
+      : 'No se pudo cargar la hoja AUX de silos.');
+  }
+
+  if (errors.length > 0){
+    statusBanner.className = 'status-banner error';
+    statusBanner.textContent = errors.join(' ');
+  } else {
+    statusBanner.style.display = 'none';
+  }
+
   recalculate();
 }
 
