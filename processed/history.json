@@ -933,11 +933,11 @@
     "freight": {},
     "costos": {
       "venta_soja_rosario": {
-        "costo_g_industrial": 289.46,
+        "costo_g_industrial": 297.59,
         "fob_pto_aguirre": {
-          "aceite": 1043.04,
-          "solvente": 253.28,
-          "grano": 339.09
+          "aceite": 1069.86,
+          "solvente": 257.57,
+          "grano": 340.01
         },
         "costo_exp": {
           "aceite": 60.91,
@@ -945,13 +945,13 @@
           "grano": 46.85
         },
         "fca_scz_montero": {
-          "aceite": 982.14,
-          "solvente": 206.43,
-          "grano": 292.24
+          "aceite": 1008.96,
+          "solvente": 210.72,
+          "grano": 293.16
         },
         "costo_total_transporte": {
-          "aceite": 108.86,
-          "solvente": 86.02,
+          "aceite": 108.94,
+          "solvente": 86.03,
           "grano": 106.34
         }
       },
@@ -981,14 +981,14 @@
       "mercado_exterior": {
         "precios": {
           "rosario": {
-            "soya_grano": 445.43,
-            "harina_solvente": 339.3,
-            "aceite": 1151.9
+            "soya_grano": 446.35,
+            "harina_solvente": 343.6,
+            "aceite": 1178.8
           },
           "chicago": {
-            "soya_grano": 438.464,
-            "harina_solvente": 347.886,
-            "aceite": 1610.035
+            "soya_grano": 438.189,
+            "harina_solvente": 349.209,
+            "aceite": 1595.264
           },
           "desaguadero": {
             "soya_grano": 410.08,
@@ -998,14 +998,14 @@
         },
         "base": {
           "rosario_chicago": {
-            "soya_grano": 6.966,
-            "harina_solvente": -8.586,
-            "aceite": -458.14
+            "soya_grano": 8.161,
+            "harina_solvente": -5.609,
+            "aceite": -416.46
           },
           "desaguadero_chicago": {
-            "soya_grano": -28.38,
-            "harina_solvente": -6.33,
-            "aceite": -437.41
+            "soya_grano": -28.11,
+            "harina_solvente": -7.65,
+            "aceite": -422.63
           }
         }
       },
