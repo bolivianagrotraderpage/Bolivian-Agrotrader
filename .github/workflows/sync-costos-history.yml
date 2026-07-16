@@ -37,10 +37,24 @@ jobs:
           git add processed/costos_history.csv
           if git diff --cached --quiet; then
             echo "No changes to commit."
-          else
-            git commit -m "Actualiza histórico de costos - $(date -u +'%Y-%m-%d')"
-            git push
+            exit 0
           fi
+          git commit -m "Actualiza histórico de costos - $(date -u +'%Y-%m-%d')"
+
+          # sync-form-data.yml runs hourly on this same branch, so it's
+          # common for the remote to have moved since checkout. Rebase
+          # onto the latest and retry a few times rather than failing
+          # outright on a non-fast-forward push.
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt/5) - pulling and retrying..."
+            git pull --rebase origin main
+            sleep $((RANDOM % 10 + 3))
+          done
+          echo "Push still failing after 5 attempts."
+          exit 1
 
       # If the sync step fails (bad fetch, empty/malformed sheet), this
       # opens a GitHub issue instead of failing silently overnight.
