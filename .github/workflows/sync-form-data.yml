@@ -28,8 +28,26 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add processed/history.json
-          git diff --staged --quiet || git commit -m "Sync form responses [skip ci]"
-          git push
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "Sync form responses [skip ci]"
+
+          # This runs hourly and sync-costos-history.yml runs daily on
+          # the same branch, so the remote can move between checkout and
+          # push. Rebase onto the latest and retry a few times rather
+          # than failing outright on a non-fast-forward push.
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt/5) - pulling and retrying..."
+            git pull --rebase origin main
+            sleep $((RANDOM % 10 + 3))
+          done
+          echo "Push still failing after 5 attempts."
+          exit 1
 
       # If the sync step fails (bad fetch, empty sheet, malformed data),
       # this opens a GitHub issue instead of failing silently at 3am.
