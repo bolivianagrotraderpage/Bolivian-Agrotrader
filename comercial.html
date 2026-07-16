@@ -8,19 +8,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg: #171B18;
-    --bg-panel: #1E231F;
-    --line: #33392F;
-    --text: #EDEAD4;
-    --text-dim: #9BA192;
-    --grain: #D9A441;
-    --grain-dim: #6B5729;
-    --soy: #8CAE7C;
-    --soy-dim: #3E4F35;
+    --bg: #0D2216;
+    --bg-panel: #12331F;
+    --line: #2E5138;
+    --text: #F4EFD9;
+    --text-dim: #A9C4AF;
+    --grain: #E7B93E;
+    --grain-dim: #5B4712;
+    --soy: #4CAF6D;
+    --soy-dim: #1D4029;
     --freight: #7FA6C4;
     --freight-dim: #35434E;
-    --costos: #C97A6B;
-    --costos-dim: #4E3430;
+    --costos: #B0453F;
+    --costos-dim: #3E1A17;
     --radius: 6px;
   }
   *{box-sizing:border-box}
@@ -40,19 +40,46 @@
     letter-spacing:-0.01em;
   }
   header{
+    position:relative;
+    overflow:hidden;
     padding:48px 32px 32px;
     border-bottom:1px solid var(--line);
     max-width:1080px;
     margin:0 auto;
   }
+  /* Abstract nod to the crest's diagonal banner — a soft cream stripe
+     crossing the header, not a reproduction of the logo itself. */
+  header::before{
+    content:'';
+    position:absolute;
+    top:-40%; left:-10%;
+    width:140%; height:220%;
+    background:linear-gradient(115deg,
+      transparent 44%,
+      rgba(244,239,217,0.05) 46%,
+      rgba(244,239,217,0.09) 50%,
+      rgba(244,239,217,0.05) 54%,
+      transparent 56%);
+    pointer-events:none;
+    z-index:-1;
+  }
+  header .stars{
+    position:relative;
+    color:var(--grain);
+    letter-spacing:0.3em;
+    font-size:12px;
+    margin-bottom:6px;
+    opacity:0.85;
+  }
   header .eyebrow{
+    position:relative;
     color:var(--text-dim);
     text-transform:uppercase;
     letter-spacing:0.12em;
     font-size:11px;
     margin-bottom:10px;
   }
-  header h1{font-size:32px;}
+  header h1{position:relative; font-size:32px;}
   header p{color:var(--text-dim); margin-top:10px; font-size:13px;}
   .page-nav{
     display:flex;
@@ -235,6 +262,7 @@
 <body>
 
 <header>
+  <div class="stars">★ ★ ★ ★ ★</div>
   <div class="eyebrow">Reporte de mercado · herramienta</div>
   <h1>Precios agropecuarios — Bolivia</h1>
   <p>Calculadora de descuento por calidad de grano — Soya / Maíz / Sorgo</p>
