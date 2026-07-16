@@ -956,19 +956,19 @@
         }
       },
       "venta_soja_lima": {
-        "costo_g_industrial": 378.44,
+        "costo_g_industrial": 374.74,
         "fob_desaguadero": {
           "aceite": 1172.63,
           "solvente": 341.56,
           "grano": 410.08
         },
         "costo_exp": {
-          "aceite": 50.0,
+          "aceite": 70.0,
           "solvente": 50.0,
           "grano": 50.0
         },
         "fca_scz_montero": {
-          "aceite": 1122.63,
+          "aceite": 1102.63,
           "solvente": 291.56,
           "grano": 360.08
         },
