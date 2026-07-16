@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comercial · Precios agropecuarios · Bolivia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #171B18;
+    --bg-panel: #1E231F;
+    --line: #33392F;
+    --text: #EDEAD4;
+    --text-dim: #9BA192;
+    --grain: #D9A441;
+    --grain-dim: #6B5729;
+    --soy: #8CAE7C;
+    --soy-dim: #3E4F35;
+    --freight: #7FA6C4;
+    --freight-dim: #35434E;
+    --costos: #C97A6B;
+    --costos-dim: #4E3430;
+    --radius: 6px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'JetBrains Mono', monospace;
+    font-size:14px;
+    line-height:1.6;
+    padding:0 0 80px;
+  }
+  h1,h2,h3{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  header{
+    padding:48px 32px 32px;
+    border-bottom:1px solid var(--line);
+    max-width:1080px;
+    margin:0 auto;
+  }
+  header .eyebrow{
+    color:var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:0.12em;
+    font-size:11px;
+    margin-bottom:10px;
+  }
+  header h1{font-size:32px;}
+  header p{color:var(--text-dim); margin-top:10px; font-size:13px;}
+  .page-nav{
+    display:flex;
+    gap:10px;
+    margin-top:22px;
+    flex-wrap:wrap;
+  }
+  .page-nav a{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    padding:8px 16px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    text-decoration:none;
+  }
+  .page-nav a:hover{color:var(--text); border-color:var(--text-dim);}
+  .page-nav a.active{background:var(--bg-panel); color:var(--text); border-color:var(--text-dim);}
+  main{max-width:1080px; margin:0 auto; padding:0 32px;}
+  section{margin-top:40px;}
+  section > h2{font-size:20px; margin-bottom:4px;}
+  .sub{color:var(--text-dim); font-size:12px; margin-bottom:20px;}
+  .group-label{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+    padding:4px 10px;
+    border-radius:999px;
+    margin-bottom:16px;
+    color:var(--grain); background:var(--grain-dim);
+  }
+
+  .grain-toggle{
+    display:flex;
+    gap:10px;
+    margin-bottom:24px;
+    max-width:520px;
+  }
+  .grain-btn{
+    flex:1;
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    padding:12px 14px;
+    border-radius:4px;
+    border:1px solid var(--line);
+    background:var(--bg-panel);
+    color:var(--text-dim);
+    cursor:pointer;
+  }
+  .grain-btn:hover{ border-color:var(--text-dim); color:var(--text); }
+  .grain-btn.active{
+    background:var(--grain-dim);
+    color:var(--grain);
+    border-color:var(--grain);
+  }
+
+  .calc-layout{
+    display:grid;
+    grid-template-columns:340px 1fr;
+    gap:24px;
+    align-items:start;
+  }
+  @media (max-width:800px){
+    .calc-layout{ grid-template-columns:1fr; }
+  }
+
+  .calc-card{
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:24px;
+  }
+  .field{ margin-bottom:20px; }
+  .field:last-child{ margin-bottom:0; }
+  .field label{
+    display:block;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text-dim);
+    margin-bottom:8px;
+  }
+  .field input[type="number"]{
+    width:100%;
+    background:var(--bg);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-family:'JetBrains Mono', monospace;
+    font-size:15px;
+    padding:12px 14px;
+    border-radius:4px;
+  }
+  .field input[type="number"]:focus{
+    outline:none;
+    border-color:var(--text-dim);
+  }
+  .field .ref-note{
+    font-size:11px;
+    color:var(--text-dim);
+    margin-top:6px;
+  }
+
+  .result-card{
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:24px;
+  }
+  .headline-numbers{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+    margin-bottom:24px;
+  }
+  .headline-number{
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px;
+    text-align:center;
+  }
+  .headline-number .value{
+    font-family:'Fraunces', serif;
+    font-size:24px;
+    color:var(--grain);
+    line-height:1;
+  }
+  .headline-number .value.pending{ color:var(--text-dim); font-size:16px; }
+  .headline-number .label{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text-dim);
+    margin-top:8px;
+  }
+
+  .breakdown-title{
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text-dim);
+    margin-bottom:10px;
+  }
+  .breakdown{
+    font-size:12.5px;
+  }
+  .breakdown-row{
+    display:flex;
+    justify-content:space-between;
+    padding:7px 0;
+    border-bottom:1px dashed var(--line);
+    gap:12px;
+  }
+  .breakdown-row:last-child{ border-bottom:none; }
+  .breakdown-row .k{ color:var(--text-dim); }
+  .breakdown-row .k .formula{ color:var(--text-dim); opacity:0.6; margin-left:6px; font-size:10.5px; }
+  .breakdown-row .v{ color:var(--text); font-weight:600; }
+  .breakdown-row .v.dim{ color:var(--text-dim); font-weight:400; }
+
+  .status-banner{
+    font-size:12.5px;
+    color:var(--text-dim);
+    padding:14px 16px;
+    border:1px dashed var(--line);
+    border-radius:var(--radius);
+    margin-bottom:24px;
+    max-width:700px;
+  }
+  @media (max-width:640px){
+    header{padding:32px 20px 24px;}
+    main{padding:0 20px;}
+    header h1{font-size:26px;}
+    .headline-numbers{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Reporte de mercado · herramienta</div>
+  <h1>Precios agropecuarios — Bolivia</h1>
+  <p>Calculadora de descuento por calidad de grano — Soya / Maíz / Sorgo</p>
+  <nav class="page-nav">
+    <a href="index.html">Actual</a>
+    <a href="historico.html">Histórico</a>
+    <a href="calculadora.html">Calculadora</a>
+    <a href="comercial.html" class="active">Comercial</a>
+  </nav>
+</header>
+
+<main>
+
+  <section>
+    <span class="group-label">Comercial</span>
+    <h2>Descuento por humedad e impureza</h2>
+    <div class="sub">Calcula el peso líquido y el precio final a partir de la humedad e impureza registradas en boleta, según el grano. No usa datos de Google Sheets — todo el cálculo ocurre en esta página.</div>
+
+    <div class="grain-toggle" id="grainToggle">
+      <button type="button" class="grain-btn" data-grain="soya">Soya</button>
+      <button type="button" class="grain-btn" data-grain="maiz">Maíz</button>
+      <button type="button" class="grain-btn active" data-grain="sorgo">Sorgo</button>
+    </div>
+
+    <div class="calc-layout">
+      <div class="calc-card">
+        <div class="field">
+          <label for="humedadInput">Humedad registrada (%)</label>
+          <input type="number" id="humedadInput" min="0" max="100" step="0.01" placeholder="Ej. 18.30">
+        </div>
+        <div class="field">
+          <label for="impurezaInput">Impureza registrada (%)</label>
+          <input type="number" id="impurezaInput" min="0" max="100" step="0.01" placeholder="Ej. 5.30">
+          <div class="ref-note" id="refNote">Referencia (Sorgo): Humedad 14.00% · Impureza 1.00%</div>
+        </div>
+        <div class="field">
+          <label for="pesoInput">Peso neto (Kg)</label>
+          <input type="number" id="pesoInput" min="0" step="0.01" placeholder="Ej. 32120">
+        </div>
+        <div class="field">
+          <label for="precioInput">Precio neto (Bs/QQ)</label>
+          <input type="number" id="precioInput" min="0" step="0.01" placeholder="Ej. 75.00">
+        </div>
+      </div>
+
+      <div class="result-card">
+        <div id="statusBanner" class="status-banner">Completa los datos para ver el resultado.</div>
+
+        <div class="headline-numbers">
+          <div class="headline-number">
+            <div class="value pending" id="precioTotalValue">—</div>
+            <div class="label">Precio total del peso neto (Bs)</div>
+          </div>
+          <div class="headline-number">
+            <div class="value pending" id="precioUnitarioValue">—</div>
+            <div class="label">Precio unitario (Bs/qq)</div>
+          </div>
+        </div>
+
+        <div class="breakdown-title">Detalle del cálculo</div>
+        <div class="breakdown">
+          <div class="breakdown-row"><span class="k">Humedad de referencia (C)</span><span class="v" id="out-C">—</span></div>
+          <div class="breakdown-row"><span class="k">Impureza de referencia (D)</span><span class="v" id="out-D">—</span></div>
+          <div class="breakdown-row"><span class="k">Humedad en exceso (E)<span class="formula">A−C</span></span><span class="v" id="out-E">—</span></div>
+          <div class="breakdown-row"><span class="k">Impureza en exceso (F)<span class="formula">B−D</span></span><span class="v" id="out-F">—</span></div>
+          <div class="breakdown-row"><span class="k">Descuento por humedad (G)<span class="formula">E/(1−C), mín. 0%</span></span><span class="v" id="out-G">—</span></div>
+          <div class="breakdown-row"><span class="k">Descuento por impureza (H)<span class="formula">F/(1−D), mín. 0%</span></span><span class="v" id="out-H">—</span></div>
+          <div class="breakdown-row"><span class="k">Descuento total (I)<span class="formula">G+H</span></span><span class="v" id="out-I">—</span></div>
+          <div class="breakdown-row"><span class="k">Descuento total Kg (K)<span class="formula">I×J</span></span><span class="v" id="out-K">—</span></div>
+          <div class="breakdown-row"><span class="k">Peso líquido (L)<span class="formula">J−K</span></span><span class="v" id="out-L">—</span></div>
+          <div class="breakdown-row"><span class="k">Peso líquido qq (O)<span class="formula">L/1000×21.74</span></span><span class="v" id="out-O">—</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// Humedad/Impureza de referencia per grain — confirmed against real
+// examples (Sorgo 14%/1%, Soya 13%/1%, Maíz same as Sorgo 14%/1%).
+const GRAIN_REFERENCES = {
+  soya:  { label: 'Soya',  humedad: 13, impureza: 1 },
+  maiz:  { label: 'Maíz',  humedad: 14, impureza: 1 },
+  sorgo: { label: 'Sorgo', humedad: 14, impureza: 1 },
+};
+
+let selectedGrain = 'sorgo';
+
+const humedadInput = document.getElementById('humedadInput');
+const impurezaInput = document.getElementById('impurezaInput');
+const pesoInput = document.getElementById('pesoInput');
+const precioInput = document.getElementById('precioInput');
+const refNote = document.getElementById('refNote');
+const statusBanner = document.getElementById('statusBanner');
+const grainToggle = document.getElementById('grainToggle');
+
+function fmt(n, decimals = 2){
+  if (n === null || n === undefined || Number.isNaN(n)) return '—';
+  return n.toLocaleString('es-BO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+function fmtPct(n){
+  return n === null || n === undefined || Number.isNaN(n) ? '—' : `${fmt(n)}%`;
+}
+
+grainToggle.querySelectorAll('.grain-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    selectedGrain = btn.dataset.grain;
+    grainToggle.querySelectorAll('.grain-btn').forEach(b => b.classList.toggle('active', b === btn));
+    updateRefNote();
+    recalculate();
+  });
+});
+
+function updateRefNote(){
+  const ref = GRAIN_REFERENCES[selectedGrain];
+  refNote.textContent = `Referencia (${ref.label}): Humedad ${fmt(ref.humedad)}% · Impureza ${fmt(ref.impureza)}%`;
+}
+
+[humedadInput, impurezaInput, pesoInput, precioInput].forEach(el => el.addEventListener('input', recalculate));
+
+// Mirrors the spreadsheet's A-Q panel exactly:
+//   E = A-C, F = B-D
+//   G = max(0, E/(1-C)) rounded to 4 decimals (as a fraction)
+//   H = max(0, F/(1-D)) rounded to 4 decimals
+//   I = G+H
+//   K = round(I x J, 0 decimals)
+//   L = J-K
+//   N = J x M / 1000 x 21.74
+//   O = L / 1000 x 21.74
+//   Q = N / O
+// A negative "en exceso" (registered below the reference) floors that
+// discount at 0% rather than going negative — confirmed against two
+// worked examples (humedad and impureza both checked separately).
+function recalculate(){
+  const ref = GRAIN_REFERENCES[selectedGrain];
+  const A = parseFloat(humedadInput.value);
+  const B = parseFloat(impurezaInput.value);
+  const J = parseFloat(pesoInput.value);
+  const M = parseFloat(precioInput.value);
+  const C = ref.humedad;
+  const D = ref.impureza;
+
+  document.getElementById('out-C').textContent = fmtPct(C);
+  document.getElementById('out-D').textContent = fmtPct(D);
+
+  const missing = [];
+  if (Number.isNaN(A) || A < 0) missing.push('ingresa la humedad registrada');
+  if (Number.isNaN(B) || B < 0) missing.push('ingresa la impureza registrada');
+  if (Number.isNaN(J) || J <= 0) missing.push('ingresa el peso neto');
+  if (Number.isNaN(M) || M <= 0) missing.push('ingresa el precio neto');
+
+  const rows = ['out-E', 'out-F', 'out-G', 'out-H', 'out-I', 'out-K', 'out-L', 'out-O'];
+  const precioTotalEl = document.getElementById('precioTotalValue');
+  const precioUnitarioEl = document.getElementById('precioUnitarioValue');
+
+  if (missing.length > 0){
+    rows.forEach(id => document.getElementById(id).textContent = '—');
+    precioTotalEl.textContent = '—'; precioTotalEl.className = 'value pending';
+    precioUnitarioEl.textContent = '—'; precioUnitarioEl.className = 'value pending';
+    statusBanner.style.display = 'block';
+    statusBanner.textContent = 'Completa los datos para ver el resultado: ' + missing.join(', ') + '.';
+    return;
+  }
+  statusBanner.style.display = 'none';
+
+  const E = A - C;
+  const F = B - D;
+  const G = Math.max(0, Math.round((E / (1 - C / 100)) * 100) / 100);
+  const H = Math.max(0, Math.round((F / (1 - D / 100)) * 100) / 100);
+  const I = G + H;
+  const K = Math.round((I / 100) * J);
+  const L = J - K;
+  const N = (J * M / 1000) * 21.74;
+  const O = (L / 1000) * 21.74;
+  const Q = O !== 0 ? N / O : null;
+
+  document.getElementById('out-E').textContent = fmtPct(E);
+  document.getElementById('out-F').textContent = fmtPct(F);
+  document.getElementById('out-G').textContent = fmtPct(G);
+  document.getElementById('out-H').textContent = fmtPct(H);
+  document.getElementById('out-I').textContent = fmtPct(I);
+  document.getElementById('out-K').textContent = `${fmt(K, 0)} Kg`;
+  document.getElementById('out-L').textContent = `${fmt(L, 0)} Kg`;
+  document.getElementById('out-O').textContent = `${fmt(O)} qq`;
+
+  precioTotalEl.textContent = `Bs ${fmt(N)}`;
+  precioTotalEl.className = 'value';
+  precioUnitarioEl.textContent = Q !== null ? `Bs ${fmt(Q)}` : '—';
+  precioUnitarioEl.className = 'value';
+}
+
+updateRefNote();
+recalculate();
+</script>
+
+</body>
+</html>
