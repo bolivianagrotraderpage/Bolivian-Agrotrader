@@ -653,18 +653,23 @@ function renderPeriodChips(periodId, key){
 // Chart.js instance, and re-renders its group/line filter chips (reset
 // to "Todos" — the previous selection isn't preserved across a period
 // switch, since the underlying line set can change size).
-// Drops leading labels/points where every dataset is still null — e.g.
-// an "Anual" view spanning 2 years when real data only starts 2 months
-// in shouldn't show ~22 empty months of gap-marker circles up front.
-// Only trims the front; a real gap later in the range still shows as a
-// gap marker, since that's meaningfully different from "before any data
+// Drops leading AND trailing labels/points where every dataset is still
+// null — e.g. an "Anual" view spanning 2 years when real data only
+// starts 2 months in, or a "Mensual" view whose last couple of Mondays
+// fall past the most recent real data point. Only trims the outer edges;
+// a real gap in the *middle* of the range still shows as a gap marker,
+// since that's meaningfully different from "before/after any data
 // existed at all".
-function trimLeadingEmpty(labels, datasets){
-  let firstIdx = labels.findIndex((_, i) => datasets.some(ds => ds.data[i] !== null && ds.data[i] !== undefined));
-  if (firstIdx <= 0) return { labels, datasets };
+function trimEmptyEdges(labels, datasets){
+  const hasData = i => datasets.some(ds => ds.data[i] !== null && ds.data[i] !== undefined);
+  const firstIdx = labels.findIndex((_, i) => hasData(i));
+  if (firstIdx === -1) return { labels, datasets }; // completely empty - leave as-is
+  let lastIdx = labels.length - 1;
+  while (lastIdx > firstIdx && !hasData(lastIdx)) lastIdx--;
+  if (firstIdx === 0 && lastIdx === labels.length - 1) return { labels, datasets };
   return {
-    labels: labels.slice(firstIdx),
-    datasets: datasets.map(ds => ({ ...ds, data: ds.data.slice(firstIdx) })),
+    labels: labels.slice(firstIdx, lastIdx + 1),
+    datasets: datasets.map(ds => ({ ...ds, data: ds.data.slice(firstIdx, lastIdx + 1) })),
   };
 }
 
@@ -674,7 +679,7 @@ function applyPeriod(key, periodKey){
   chartPeriods[key] = periodKey;
   const period = DATE_PERIODS.find(p => p.key === periodKey);
   const resampled = period.resample(full.labels, full.datasets);
-  const trimmed = trimLeadingEmpty(resampled.labels, resampled.datasets);
+  const trimmed = trimEmptyEdges(resampled.labels, resampled.datasets);
   const datasets = withGapMarkers(trimmed.datasets);
   const labels = trimmed.labels;
 
