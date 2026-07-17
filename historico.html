@@ -490,36 +490,143 @@ function toDayMonthYY(d){
   return `${day}/${month}/${year}`;
 }
 
-// ---- date period filtering ----------------------------------------------
-// Every chart gets its own 5-way time-range control. Narrower ranges keep
-// the full YYYY-MM-DD date; broader ones truncate to YYYY-MM so the axis
-// isn't cluttered with a label per day. "Anual" shows the entire history.
-const DATE_PERIODS = [
-  { key: 'yearly',    label: 'Anual',      days: null, format: toYearMonth },
-  { key: 'quarterly', label: 'Trimestral', days: 365,  format: toYearMonth },
-  { key: 'monthly',   label: 'Mensual',    days: 60,   format: toYearMonth },
-  { key: 'weekly',    label: 'Semanal',    days: 28,   format: toDayMonthYY },
-  { key: 'daily',     label: 'Diario',     days: 7,    format: toDayMonthYY },
-];
-const DEFAULT_PERIOD = 'yearly';
+// Date-object variants of the two formatters above, for labeling target
+// sample dates built directly as Date objects (resampling) rather than
+// parsed from a data row's date string.
+function formatYearMonthFromDate(date){
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+function formatDayMonthYYFromDate(date){
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = String(date.getFullYear()).slice(-2);
+  return `${day}/${month}/${year}`;
+}
 
-// Slices the full (unfiltered) labels/datasets down to the trailing N
-// days implied by `period` (or the whole range for "yearly"), then
-// applies that period's date-label format. Never mutates the originals,
-// so switching periods repeatedly always re-slices from the full data.
-function filterByPeriod(fullLabels, fullDatasets, period){
+// ---- date period resampling ----------------------------------------------
+// Each period picks specific sample points rather than just a trailing
+// window of raw days:
+//   Diario/Semanal   - every day within the trailing window (no
+//                       aggregation), DD/MM/YY labels.
+//   Mensual          - 4 sample points per month, 4 months back (16
+//                       points): each month split into 4 day-buckets,
+//                       taking the first real data point found in each.
+//   Trimestral       - one point per month, 5 quarters back (15 months):
+//                       the first real data point found in each month.
+//   Anual            - same one-point-per-month sampling, 2 full years
+//                       back (24 months).
+// A bucket/month with no real data in range becomes a null - which the
+// gap-marker step below turns into a hollow "sin dato" circle rather
+// than a silent break in the line.
+function resampleTrailingDays(fullLabels, fullDatasets, days, formatFn){
   let startIdx = 0;
-  if (period.days !== null && fullLabels.length){
+  if (fullLabels.length){
     const cutoff = parseFlexibleDate(fullLabels[fullLabels.length - 1]);
-    cutoff.setDate(cutoff.getDate() - period.days);
+    cutoff.setDate(cutoff.getDate() - days);
     const idx = fullLabels.findIndex(d => parseFlexibleDate(d) >= cutoff);
     startIdx = idx === -1 ? fullLabels.length : idx;
   }
   return {
-    labels: fullLabels.slice(startIdx).map(period.format),
+    labels: fullLabels.slice(startIdx).map(formatFn),
     datasets: fullDatasets.map(ds => ({ ...ds, data: ds.data.slice(startIdx) })),
   };
 }
+
+// Shared machinery for both month-based samplers: builds a list of
+// {start,end,label} windows counting back from the last available date,
+// then for each window takes the first real data point that falls
+// inside it (or null).
+function resampleByDateWindows(fullLabels, fullDatasets, windows){
+  if (!fullLabels.length) return { labels: [], datasets: fullDatasets.map(ds => ({ ...ds, data: [] })) };
+  const parsedDates = fullLabels.map(parseFlexibleDate);
+
+  const labels = windows.map(w => w.labelFormat(w.label));
+  const datasets = fullDatasets.map(ds => {
+    const data = windows.map(w => {
+      const idx = parsedDates.findIndex(d => d >= w.start && d <= w.end);
+      return idx === -1 ? null : ds.data[idx];
+    });
+    return { ...ds, data };
+  });
+  return { labels, datasets };
+}
+
+// Mensual: every Monday within each of the last `monthsBack` months.
+// Each Monday's window is that calendar week (Mon-Sun), so a real data
+// point landing anywhere that week still counts.
+function buildMondayPerWeekWindows(lastDate, monthsBack){
+  const windows = [];
+  for (let m = monthsBack - 1; m >= 0; m--){
+    const monthStart = new Date(lastDate.getFullYear(), lastDate.getMonth() - m, 1);
+    const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+    let d = new Date(monthStart);
+    const dow = d.getDay(); // 0=Sun .. 6=Sat
+    d.setDate(d.getDate() + (dow === 0 ? 1 : (dow === 1 ? 0 : 8 - dow))); // first Monday >= monthStart
+    while (d <= monthEnd){
+      const weekEnd = new Date(d);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      weekEnd.setHours(23, 59, 59);
+      windows.push({ start: new Date(d), end: weekEnd, label: new Date(d), labelFormat: formatDayMonthYYFromDate });
+      d.setDate(d.getDate() + 7);
+    }
+  }
+  return windows;
+}
+
+// Trimestral: the 1st and the 15th of each month, within the last
+// `monthsBack` months. Each anchor gets a ~1-week window after it, so a
+// real point landing shortly after the 1st/15th still counts rather than
+// requiring an exact match.
+function buildFirstAndFifteenthWindows(lastDate, monthsBack){
+  const windows = [];
+  for (let m = monthsBack - 1; m >= 0; m--){
+    const monthStart = new Date(lastDate.getFullYear(), lastDate.getMonth() - m, 1);
+    const y = monthStart.getFullYear(), mo = monthStart.getMonth();
+    const day1 = new Date(y, mo, 1);
+    windows.push({ start: day1, end: new Date(y, mo, 7, 23, 59, 59), label: day1, labelFormat: formatDayMonthYYFromDate });
+    const day15 = new Date(y, mo, 15);
+    windows.push({ start: day15, end: new Date(y, mo, 21, 23, 59, 59), label: day15, labelFormat: formatDayMonthYYFromDate });
+  }
+  return windows;
+}
+
+// Anual: just the 1st of each month, within the last `monthsBack` months.
+function buildFirstOfMonthWindows(lastDate, monthsBack){
+  const windows = [];
+  for (let m = monthsBack - 1; m >= 0; m--){
+    const monthStart = new Date(lastDate.getFullYear(), lastDate.getMonth() - m, 1);
+    const y = monthStart.getFullYear(), mo = monthStart.getMonth();
+    windows.push({ start: monthStart, end: new Date(y, mo, 7, 23, 59, 59), label: monthStart, labelFormat: formatYearMonthFromDate });
+  }
+  return windows;
+}
+
+function resampleMondaysPerMonth(fullLabels, fullDatasets, monthsBack){
+  if (!fullLabels.length) return { labels: [], datasets: fullDatasets.map(ds => ({ ...ds, data: [] })) };
+  const lastDate = parseFlexibleDate(fullLabels[fullLabels.length - 1]);
+  return resampleByDateWindows(fullLabels, fullDatasets, buildMondayPerWeekWindows(lastDate, monthsBack));
+}
+
+function resampleFirstAndFifteenth(fullLabels, fullDatasets, monthsBack){
+  if (!fullLabels.length) return { labels: [], datasets: fullDatasets.map(ds => ({ ...ds, data: [] })) };
+  const lastDate = parseFlexibleDate(fullLabels[fullLabels.length - 1]);
+  return resampleByDateWindows(fullLabels, fullDatasets, buildFirstAndFifteenthWindows(lastDate, monthsBack));
+}
+
+function resampleFirstOfMonth(fullLabels, fullDatasets, monthsBack){
+  if (!fullLabels.length) return { labels: [], datasets: fullDatasets.map(ds => ({ ...ds, data: [] })) };
+  const lastDate = parseFlexibleDate(fullLabels[fullLabels.length - 1]);
+  return resampleByDateWindows(fullLabels, fullDatasets, buildFirstOfMonthWindows(lastDate, monthsBack));
+}
+
+const DATE_PERIODS = [
+  { key: 'yearly',    label: 'Anual',      resample: (l, d) => resampleFirstOfMonth(l, d, 24) },
+  { key: 'quarterly', label: 'Trimestral', resample: (l, d) => resampleFirstAndFifteenth(l, d, 15) },
+  { key: 'monthly',   label: 'Mensual',    resample: (l, d) => resampleMondaysPerMonth(l, d, 4) },
+  { key: 'weekly',    label: 'Semanal',    resample: (l, d) => resampleTrailingDays(l, d, 21, toDayMonthYY) },
+  { key: 'daily',     label: 'Diario',     resample: (l, d) => resampleTrailingDays(l, d, 7, toDayMonthYY) },
+];
+const DEFAULT_PERIOD = 'yearly';
 
 // Full/unfiltered data + DOM ids per chart, keyed the same way as
 // chartInstances, so a period switch can re-slice from the original
@@ -541,7 +648,8 @@ function renderPeriodChips(periodId, key){
   });
 }
 
-// Re-slices a chart's full data to the chosen period, rebuilds the
+// Re-samples a chart's full data for the chosen period, marks any
+// missing sample point with a hollow "sin dato" circle, rebuilds the
 // Chart.js instance, and re-renders its group/line filter chips (reset
 // to "Todos" — the previous selection isn't preserved across a period
 // switch, since the underlying line set can change size).
@@ -550,7 +658,9 @@ function applyPeriod(key, periodKey){
   if (!full) return;
   chartPeriods[key] = periodKey;
   const period = DATE_PERIODS.find(p => p.key === periodKey);
-  const { labels, datasets } = filterByPeriod(full.labels, full.datasets, period);
+  const resampled = period.resample(full.labels, full.datasets);
+  const datasets = withGapMarkers(resampled.datasets);
+  const labels = resampled.labels;
 
   const periodContainer = document.getElementById(full.periodId);
   if (periodContainer) {
@@ -559,7 +669,7 @@ function applyPeriod(key, periodKey){
     });
   }
 
-  const hasData = datasets.some(ds => ds.data.some(v => v !== null));
+  const hasData = datasets.filter(ds => !ds._isGapMarker).some(ds => ds.data.some(v => v !== null));
   toggleEmpty(full.emptyId, hasData);
   const canvas = document.getElementById(full.canvasId);
   canvas.style.display = hasData ? 'block' : 'none';
@@ -576,10 +686,10 @@ function applyPeriod(key, periodKey){
 }
 
 // Stores a chart's full data, renders its period chips, and does the
-// initial render at the default period ("Anual" — the whole history).
-// `groups` is optional: pass an array of {key,label,color} for
-// grouped filtering (Mercado Exterior/Rosario/Lima style), or omit it
-// for the simple "isolate one line" style (grains/soy/freight).
+// initial render at the default period ("Anual"). `groups` is optional:
+// pass an array of {key,label,color} for grouped filtering (Mercado
+// Exterior/Rosario/Lima style), or omit it for the simple "isolate one
+// line" style (grains/soy/freight).
 function registerChart(key, canvasId, filtersId, periodId, emptyId, labels, datasets, groups){
   chartFullData[key] = { labels, datasets, canvasId, filtersId, periodId, emptyId, groups: groups || null };
   renderPeriodChips(periodId, key);
@@ -590,6 +700,67 @@ function lineDataset(label, color, points){
   return { label, data: points, borderColor: color, backgroundColor: color, borderWidth: 2, tension: 0.25, spanGaps: true, pointRadius: 3 };
 }
 
+// Builds a companion dataset that marks every missing point on `primary`
+// with a hollow circle (transparent fill, colored outline) instead of
+// just leaving a silent gap in the connecting line. The marker sits
+// wherever spanGaps would otherwise draw the line through — linearly
+// interpolated between the nearest real neighbors, or pinned to whichever
+// single neighbor exists for a leading/trailing gap. No line of its own
+// (showLine:false), so it only adds points, never an extra line segment.
+// Inherits _filterGroup from the primary so grouped filter chips
+// (renderGroupedFilterChips) toggle the marker together with its line
+// automatically; _pairKey does the equivalent job for the single-line
+// "isolate" style (renderFilterChips).
+function buildGapMarkerDataset(primary){
+  const values = primary.data;
+  const n = values.length;
+  const markerData = values.map((v, i) => {
+    if (v !== null && v !== undefined) return null;
+    let prevIdx = i - 1;
+    while (prevIdx >= 0 && (values[prevIdx] === null || values[prevIdx] === undefined)) prevIdx--;
+    let nextIdx = i + 1;
+    while (nextIdx < n && (values[nextIdx] === null || values[nextIdx] === undefined)) nextIdx++;
+    const prevVal = prevIdx >= 0 ? values[prevIdx] : null;
+    const nextVal = nextIdx < n ? values[nextIdx] : null;
+    if (prevVal !== null && nextVal !== null){
+      return prevVal + (nextVal - prevVal) * ((i - prevIdx) / (nextIdx - prevIdx));
+    }
+    return prevVal !== null ? prevVal : nextVal;
+  });
+
+  return {
+    label: primary.label + ' (sin dato)',
+    data: markerData,
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
+    pointBackgroundColor: 'transparent',
+    pointBorderColor: primary.borderColor,
+    pointBorderWidth: 1.5,
+    pointRadius: markerData.map(v => v !== null ? 4 : 0),
+    pointHoverRadius: markerData.map(v => v !== null ? 5 : 0),
+    showLine: false,
+    spanGaps: false,
+    _isGapMarker: true,
+    _filterGroup: primary._filterGroup,
+    _pairKey: primary._pairKey,
+  };
+}
+
+// Assigns a _pairKey to every primary dataset (if it doesn't have one
+// already) and inserts each one's gap-marker companion right after it.
+// Called fresh after each resample, since which points are missing
+// depends on the period (a different set of buckets/months each time).
+function withGapMarkers(datasets){
+  const expanded = [];
+  datasets.forEach((ds, idx) => {
+    ds._pairKey = ds._pairKey ?? idx;
+    expanded.push(ds);
+    const marker = buildGapMarkerDataset(ds);
+    if (marker.data.some(v => v !== null)) expanded.push(marker);
+  });
+  return expanded;
+}
+
 function baseOptions(){
   return {
     responsive: true,
@@ -598,7 +769,7 @@ function baseOptions(){
       x: { ticks: { color: '#9BA192', font: {family:'JetBrains Mono', size: 11} }, grid: { color: '#262B22' } },
       y: { ticks: { color: '#9BA192', font: {family:'JetBrains Mono', size: 11} }, grid: { color: '#262B22' } },
     },
-    plugins: { legend: { labels: { color: '#EDEAD4', font: {family:'JetBrains Mono', size: 11}, boxWidth: 12 } } },
+    plugins: { legend: { labels: { color: '#EDEAD4', font: {family:'JetBrains Mono', size: 11}, boxWidth: 12, filter: (item, data) => !data.datasets[item.datasetIndex]._isGapMarker } } },
   };
 }
 
@@ -610,7 +781,8 @@ function toggleEmpty(id, hasData){
 function renderFilterChips(containerId, chartGetter, datasets){
   const container = document.getElementById(containerId);
   container.innerHTML = '';
-  if (datasets.length < 2) return;
+  const primaries = datasets.filter(ds => !ds._isGapMarker);
+  if (primaries.length < 2) return;
 
   function setActive(btn){
     container.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
@@ -625,13 +797,13 @@ function renderFilterChips(containerId, chartGetter, datasets){
   });
   container.appendChild(allBtn);
 
-  datasets.forEach((ds, idx) => {
+  primaries.forEach(ds => {
     const btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'filter-chip';
     btn.innerHTML = `<span class="chip-dot" style="background:${ds.borderColor}"></span>${ds.label}`;
     btn.addEventListener('click', () => {
       const chart = chartGetter();
-      chart.data.datasets.forEach((d, i) => { d.hidden = i !== idx; });
+      chart.data.datasets.forEach(d => { d.hidden = d._pairKey !== ds._pairKey; });
       chart.update(); setActive(btn);
     });
     container.appendChild(btn);
