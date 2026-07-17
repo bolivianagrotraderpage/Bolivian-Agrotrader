@@ -653,14 +653,30 @@ function renderPeriodChips(periodId, key){
 // Chart.js instance, and re-renders its group/line filter chips (reset
 // to "Todos" — the previous selection isn't preserved across a period
 // switch, since the underlying line set can change size).
+// Drops leading labels/points where every dataset is still null — e.g.
+// an "Anual" view spanning 2 years when real data only starts 2 months
+// in shouldn't show ~22 empty months of gap-marker circles up front.
+// Only trims the front; a real gap later in the range still shows as a
+// gap marker, since that's meaningfully different from "before any data
+// existed at all".
+function trimLeadingEmpty(labels, datasets){
+  let firstIdx = labels.findIndex((_, i) => datasets.some(ds => ds.data[i] !== null && ds.data[i] !== undefined));
+  if (firstIdx <= 0) return { labels, datasets };
+  return {
+    labels: labels.slice(firstIdx),
+    datasets: datasets.map(ds => ({ ...ds, data: ds.data.slice(firstIdx) })),
+  };
+}
+
 function applyPeriod(key, periodKey){
   const full = chartFullData[key];
   if (!full) return;
   chartPeriods[key] = periodKey;
   const period = DATE_PERIODS.find(p => p.key === periodKey);
   const resampled = period.resample(full.labels, full.datasets);
-  const datasets = withGapMarkers(resampled.datasets);
-  const labels = resampled.labels;
+  const trimmed = trimLeadingEmpty(resampled.labels, resampled.datasets);
+  const datasets = withGapMarkers(trimmed.datasets);
+  const labels = trimmed.labels;
 
   const periodContainer = document.getElementById(full.periodId);
   if (periodContainer) {
