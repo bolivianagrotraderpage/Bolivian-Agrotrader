@@ -517,15 +517,7 @@ function filterByPeriod(fullLabels, fullDatasets, period){
   }
   return {
     labels: fullLabels.slice(startIdx).map(period.format),
-    datasets: fullDatasets.map(ds => {
-      const slicedData = ds.data.slice(startIdx);
-      const copy = { ...ds, data: slicedData };
-      if (ds._isGapMarker) {
-        copy.pointRadius = slicedData.map(v => v !== null ? 4 : 0);
-        copy.pointHoverRadius = slicedData.map(v => v !== null ? 5 : 0);
-      }
-      return copy;
-    }),
+    datasets: fullDatasets.map(ds => ({ ...ds, data: ds.data.slice(startIdx) })),
   };
 }
 
@@ -567,7 +559,7 @@ function applyPeriod(key, periodKey){
     });
   }
 
-  const hasData = datasets.filter(ds => !ds._isGapMarker).some(ds => ds.data.some(v => v !== null));
+  const hasData = datasets.some(ds => ds.data.some(v => v !== null));
   toggleEmpty(full.emptyId, hasData);
   const canvas = document.getElementById(full.canvasId);
   canvas.style.display = hasData ? 'block' : 'none';
@@ -589,72 +581,13 @@ function applyPeriod(key, periodKey){
 // grouped filtering (Mercado Exterior/Rosario/Lima style), or omit it
 // for the simple "isolate one line" style (grains/soy/freight).
 function registerChart(key, canvasId, filtersId, periodId, emptyId, labels, datasets, groups){
-  chartFullData[key] = { labels, datasets: withGapMarkers(datasets), canvasId, filtersId, periodId, emptyId, groups: groups || null };
+  chartFullData[key] = { labels, datasets, canvasId, filtersId, periodId, emptyId, groups: groups || null };
   renderPeriodChips(periodId, key);
   applyPeriod(key, chartPeriods[key] || DEFAULT_PERIOD);
 }
 
 function lineDataset(label, color, points){
   return { label, data: points, borderColor: color, backgroundColor: color, borderWidth: 2, tension: 0.25, spanGaps: true, pointRadius: 3 };
-}
-
-// Builds a companion dataset that marks every missing point on `primary`
-// with a hollow circle (transparent fill, colored outline) instead of
-// just leaving a silent gap in the connecting line. The marker sits
-// wherever spanGaps would otherwise draw the line through — linearly
-// interpolated between the nearest real neighbors, or pinned to whichever
-// single neighbor exists for a leading/trailing gap. No line of its own
-// (showLine:false), so it only adds points, never an extra line segment.
-// Inherits _filterGroup from the primary so grouped filter chips
-// (renderGroupedFilterChips) toggle the marker together with its line
-// automatically; _pairKey does the equivalent job for the single-line
-// "isolate" style (renderFilterChips).
-function buildGapMarkerDataset(primary){
-  const values = primary.data;
-  const n = values.length;
-  const markerData = values.map((v, i) => {
-    if (v !== null && v !== undefined) return null;
-    let prevIdx = i - 1;
-    while (prevIdx >= 0 && (values[prevIdx] === null || values[prevIdx] === undefined)) prevIdx--;
-    let nextIdx = i + 1;
-    while (nextIdx < n && (values[nextIdx] === null || values[nextIdx] === undefined)) nextIdx++;
-    const prevVal = prevIdx >= 0 ? values[prevIdx] : null;
-    const nextVal = nextIdx < n ? values[nextIdx] : null;
-    if (prevVal !== null && nextVal !== null){
-      return prevVal + (nextVal - prevVal) * ((i - prevIdx) / (nextIdx - prevIdx));
-    }
-    return prevVal !== null ? prevVal : nextVal;
-  });
-
-  return {
-    label: primary.label + ' (sin dato)',
-    data: markerData,
-    borderColor: 'transparent',
-    backgroundColor: 'transparent',
-    pointBackgroundColor: 'transparent',
-    pointBorderColor: primary.borderColor,
-    pointBorderWidth: 1.5,
-    pointRadius: markerData.map(v => v !== null ? 4 : 0),
-    pointHoverRadius: markerData.map(v => v !== null ? 5 : 0),
-    showLine: false,
-    spanGaps: false,
-    _isGapMarker: true,
-    _filterGroup: primary._filterGroup,
-    _pairKey: primary._pairKey,
-  };
-}
-
-// Assigns a _pairKey to every primary dataset (if it doesn't have one
-// already) and inserts each one's gap-marker companion right after it.
-function withGapMarkers(datasets){
-  const expanded = [];
-  datasets.forEach((ds, idx) => {
-    ds._pairKey = ds._pairKey ?? idx;
-    expanded.push(ds);
-    const marker = buildGapMarkerDataset(ds);
-    if (marker.data.some(v => v !== null)) expanded.push(marker);
-  });
-  return expanded;
 }
 
 function baseOptions(){
@@ -665,7 +598,7 @@ function baseOptions(){
       x: { ticks: { color: '#9BA192', font: {family:'JetBrains Mono', size: 11} }, grid: { color: '#262B22' } },
       y: { ticks: { color: '#9BA192', font: {family:'JetBrains Mono', size: 11} }, grid: { color: '#262B22' } },
     },
-    plugins: { legend: { labels: { color: '#EDEAD4', font: {family:'JetBrains Mono', size: 11}, boxWidth: 12, filter: (item, data) => !data.datasets[item.datasetIndex]._isGapMarker } } },
+    plugins: { legend: { labels: { color: '#EDEAD4', font: {family:'JetBrains Mono', size: 11}, boxWidth: 12 } } },
   };
 }
 
@@ -677,8 +610,7 @@ function toggleEmpty(id, hasData){
 function renderFilterChips(containerId, chartGetter, datasets){
   const container = document.getElementById(containerId);
   container.innerHTML = '';
-  const primaries = datasets.filter(ds => !ds._isGapMarker);
-  if (primaries.length < 2) return;
+  if (datasets.length < 2) return;
 
   function setActive(btn){
     container.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
@@ -693,13 +625,13 @@ function renderFilterChips(containerId, chartGetter, datasets){
   });
   container.appendChild(allBtn);
 
-  primaries.forEach(ds => {
+  datasets.forEach((ds, idx) => {
     const btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'filter-chip';
     btn.innerHTML = `<span class="chip-dot" style="background:${ds.borderColor}"></span>${ds.label}`;
     btn.addEventListener('click', () => {
       const chart = chartGetter();
-      chart.data.datasets.forEach(d => { d.hidden = d._pairKey !== ds._pairKey; });
+      chart.data.datasets.forEach((d, i) => { d.hidden = i !== idx; });
       chart.update(); setActive(btn);
     });
     container.appendChild(btn);
