@@ -933,11 +933,11 @@
     "freight": {},
     "costos": {
       "venta_soja_rosario": {
-        "costo_g_industrial": 300.32,
+        "costo_g_industrial": 305.19,
         "fob_pto_aguirre": {
           "aceite": 1069.46,
-          "solvente": 261.36,
-          "grano": 358.71
+          "solvente": 267.94,
+          "grano": 351.1
         },
         "costo_exp": {
           "aceite": 60.91,
@@ -946,13 +946,13 @@
         },
         "fca_scz_montero": {
           "aceite": 1008.56,
-          "solvente": 214.51,
-          "grano": 311.86
+          "solvente": 221.09,
+          "grano": 304.25
         },
         "costo_total_transporte": {
           "aceite": 108.94,
-          "solvente": 86.04,
-          "grano": 106.4
+          "solvente": 86.06,
+          "grano": 106.37
         }
       },
       "venta_soja_lima": {
