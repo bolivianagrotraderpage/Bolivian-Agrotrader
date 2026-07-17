@@ -981,8 +981,8 @@
       "mercado_exterior": {
         "precios": {
           "rosario": {
-            "soya_grano": 465.11,
-            "harina_solvente": 347.4,
+            "soya_grano": 457.47,
+            "harina_solvente": 354.0,
             "aceite": 1178.4
           },
           "chicago": {
@@ -998,8 +998,8 @@
         },
         "base": {
           "rosario_chicago": {
-            "soya_grano": 24.257,
-            "harina_solvente": -5.667,
+            "soya_grano": 16.617,
+            "harina_solvente": 0.933,
             "aceite": -466.03
           },
           "desaguadero_chicago": {
