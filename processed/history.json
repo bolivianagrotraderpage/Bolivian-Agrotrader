@@ -951,11 +951,11 @@
         }
       },
       "venta_soja_lima": {
-        "costo_g_industrial": 386.76,
+        "costo_g_industrial": 388.35,
         "fob_desaguadero": {
-          "aceite": 1253.48,
-          "solvente": 337.59,
-          "grano": 441.03
+          "aceite": 1264.93,
+          "solvente": 336.87,
+          "grano": 446.76
         },
         "costo_exp": {
           "aceite": 70.0,
@@ -963,9 +963,9 @@
           "grano": 50.0
         },
         "fca_scz_montero": {
-          "aceite": 1183.48,
-          "solvente": 287.59,
-          "grano": 391.03
+          "aceite": 1194.93,
+          "solvente": 286.87,
+          "grano": 396.76
         },
         "costo_total_transporte": {
           "aceite": 0.0,
@@ -986,9 +986,9 @@
             "aceite": 1621.499
           },
           "desaguadero": {
-            "soya_grano": 441.03,
-            "harina_solvente": 337.59,
-            "aceite": 1253.48
+            "soya_grano": 446.76,
+            "harina_solvente": 336.87,
+            "aceite": 1264.93
           }
         },
         "base": {
@@ -998,20 +998,20 @@
             "aceite": -452.0
           },
           "desaguadero_chicago": {
-            "soya_grano": -5.98,
-            "harina_solvente": -16.69,
-            "aceite": -368.02
+            "soya_grano": -0.25,
+            "harina_solvente": -17.41,
+            "aceite": -356.57
           }
         }
       },
       "recepcion_datos": {
         "min": {
           "grano": 407.17,
-          "solvente": 281.33,
+          "solvente": 279.79,
           "aceite": 1015.0
         },
         "max": {
-          "grano": 457.33,
+          "grano": 515.69,
           "solvente": 381.0,
           "aceite": 1267.53
         }
