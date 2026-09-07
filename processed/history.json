@@ -306,7 +306,14 @@
   {
     "date": "05/08/2026",
     "source_file": "google-form",
-    "grains": {},
+    "grains": {
+      "harina_integral": {
+        "scz": 4100.0
+      },
+      "harina_solvente": {
+        "scz": 3500.0
+      }
+    },
     "soy_complex": {},
     "freight": {},
     "costos": {}
@@ -648,7 +655,14 @@
   {
     "date": "10/08/2026",
     "source_file": "google-form",
-    "grains": {},
+    "grains": {
+      "harina_integral": {
+        "scz": 4100.0
+      },
+      "harina_solvente": {
+        "scz": 3500.0
+      }
+    },
     "soy_complex": {},
     "freight": {},
     "costos": {}
@@ -748,7 +762,14 @@
   {
     "date": "12/08/2026",
     "source_file": "google-form",
-    "grains": {},
+    "grains": {
+      "harina_integral": {
+        "scz": 4025.0
+      },
+      "harina_solvente": {
+        "scz": 3500.0
+      }
+    },
     "soy_complex": {},
     "freight": {},
     "costos": {}
@@ -880,7 +901,14 @@
   {
     "date": "14/08/2026",
     "source_file": "google-form",
-    "grains": {},
+    "grains": {
+      "harina_integral": {
+        "scz": 4025.0
+      },
+      "harina_solvente": {
+        "scz": 3500.0
+      }
+    },
     "soy_complex": {},
     "freight": {},
     "costos": {}
