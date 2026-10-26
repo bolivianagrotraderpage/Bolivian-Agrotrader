@@ -1332,11 +1332,11 @@
     "freight": {},
     "costos": {
       "venta_soja_rosario": {
-        "costo_g_industrial": 352.23,
+        "costo_g_industrial": 353.47,
         "fob_pto_aguirre": {
-          "aceite": 1104.45,
-          "solvente": 322.76,
-          "grano": 384.84
+          "aceite": 1122.69,
+          "solvente": 319.87,
+          "grano": 388.94
         },
         "costo_exp": {
           "aceite": 60.91,
@@ -1344,9 +1344,9 @@
           "grano": 46.85
         },
         "fca_scz_montero": {
-          "aceite": 1043.54,
-          "solvente": 275.91,
-          "grano": 337.99
+          "aceite": 1061.79,
+          "solvente": 273.02,
+          "grano": 342.09
         }
       },
       "venta_soja_lima": {
@@ -1375,14 +1375,14 @@
       "mercado_exterior": {
         "precios": {
           "rosario": {
-            "soya_grano": 494.32,
-            "harina_solvente": 412.0,
-            "aceite": 1217.4
+            "soya_grano": 498.44,
+            "harina_solvente": 409.1,
+            "aceite": 1235.7
           },
           "chicago": {
-            "soya_grano": 462.441,
-            "harina_solvente": 384.813,
-            "aceite": 1476.435
+            "soya_grano": 456.102,
+            "harina_solvente": 375.002,
+            "aceite": 1477.317
           },
           "desaguadero": {
             "soya_grano": 484.38,
@@ -1392,14 +1392,14 @@
         },
         "base": {
           "rosario_chicago": {
-            "soya_grano": 31.879,
-            "harina_solvente": 27.187,
-            "aceite": -259.04
+            "soya_grano": 42.338,
+            "harina_solvente": 34.098,
+            "aceite": -241.62
           },
           "desaguadero_chicago": {
-            "soya_grano": 21.94,
-            "harina_solvente": -7.48,
-            "aceite": -306.72
+            "soya_grano": 28.28,
+            "harina_solvente": 2.33,
+            "aceite": -307.6
           }
         }
       },
