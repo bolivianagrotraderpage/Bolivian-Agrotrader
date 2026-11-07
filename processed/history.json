@@ -1332,11 +1332,11 @@
     "freight": {},
     "costos": {
       "venta_soja_rosario": {
-        "costo_g_industrial": 322.02,
+        "costo_g_industrial": 316.19,
         "fob_pto_aguirre": {
-          "aceite": 1087.1,
-          "solvente": 286.27,
-          "grano": 369.06
+          "aceite": 1068.56,
+          "solvente": 283.03,
+          "grano": 363.94
         },
         "costo_exp": {
           "aceite": 60.91,
@@ -1344,9 +1344,9 @@
           "grano": 46.85
         },
         "fca_scz_montero": {
-          "aceite": 1026.2,
-          "solvente": 239.42,
-          "grano": 322.21
+          "aceite": 1007.65,
+          "solvente": 236.18,
+          "grano": 317.09
         }
       },
       "venta_soja_lima": {
@@ -1375,14 +1375,14 @@
       "mercado_exterior": {
         "precios": {
           "rosario": {
-            "soya_grano": 478.5,
-            "harina_solvente": 375.4,
-            "aceite": 1200.0
+            "soya_grano": 473.36,
+            "harina_solvente": 372.15,
+            "aceite": 1181.4
           },
           "chicago": {
-            "soya_grano": 436.535,
+            "soya_grano": 438.648,
             "harina_solvente": 352.405,
-            "aceite": 1366.645
+            "aceite": 1375.905
           },
           "desaguadero": {
             "soya_grano": 484.38,
@@ -1392,14 +1392,14 @@
         },
         "base": {
           "rosario_chicago": {
-            "soya_grano": 41.965,
-            "harina_solvente": 22.995,
-            "aceite": -166.65
+            "soya_grano": 34.712,
+            "harina_solvente": 19.745,
+            "aceite": -194.5
           },
           "desaguadero_chicago": {
-            "soya_grano": 47.84,
+            "soya_grano": 45.73,
             "harina_solvente": 24.92,
-            "aceite": -196.93
+            "aceite": -206.18
           }
         }
       },
@@ -1416,7 +1416,7 @@
         }
       },
       "resumen_operaciones": {
-        "costo_fca_scz_grano": 288.23,
+        "costo_fca_scz_grano": 289.7,
         "costo_de_maquila": 45.0
       }
     }
